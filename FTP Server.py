@@ -101,6 +101,47 @@ def GetDirectoryList(connection):
     
     return
 
+def Login(port,Host):
+    
+    Username = connection.recv(4096).decode("UTF-8")
+    fileDir = os.path.dirname(os.path.realpath('__file__'))
+    filename = os.path.join(fileDir, str(Username) +'/credentials.txt')
+    RealUsername, RealPassword = readFile(filename)
+    
+    while 1:
+    
+        if Username == RealUsername:
+            connection.send('331 User name ok')
+            break
+    
+        else:
+            connection.send('404 User name inccorect')
+            Username = connection.recv(4096).decode("UTF-8")
+
+    Password = connection.recv(4096).decode("UTF-8")
+    
+    while 1:
+    
+        if Password == RealPassword:
+        
+            connection.send('230 User logged in')
+            break
+    
+        else:
+            connection.send('404 Password inccorect')
+            Password = connection.recv(4096).decode("UTF-8")
+
+    return
+
+def readFile(filename):
+    filehandle = open(filename)
+    UserName = filehandle.readline().strip()
+    Password = filehandle.readline().strip()
+    filehandle.close()
+
+    return UserName, Password
+
+
 #localhost = '127.0.0.1'
 #RIG = '192.168.1.44'
     
@@ -108,6 +149,8 @@ ControlSocket =socket.socket()
 ControlSocket.bind((Host, port))
 ControlSocket.listen(5)  
 connection, address = ControlSocket.accept() 
+
+Login(port,Host)
 
 print ("Connection request from address: " + str(address))
 

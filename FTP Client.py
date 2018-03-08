@@ -8,12 +8,10 @@ import socket
 import time
 
 port = 5000
-Host = '127.0.0.1'
+Host =   '127.0.0.1' #'ELEN4017.ug.eie.wits.ac.za'#'ftp://mirror.ac.za/'
 
 ControlSocket = socket.socket()
 ControlSocket.connect((Host,port))
-
-Message = raw_input("Message from client: ")
 
 def recv_timeout(the_socket,timeout=2):
     #make socket non blocking
@@ -96,9 +94,29 @@ def FileTransferToServer(port,host):
     
     return
 
+def Login(port,Host):
+    
+    UsernameReplyCode = ''
+    while UsernameReplyCode != '331 User name ok':
+        
+        Username = raw_input("USER")
+        ControlSocket.send(Username.encode("UTF-8"))
+        UsernameReplyCode = ControlSocket.recv(4096).decode("UTF-8")
+        print(str(UsernameReplyCode))
+    
+    PassReplyCode =''
+    while PassReplyCode != '230 User logged in' :
+        
+        Password = raw_input("PASS")
+        ControlSocket.send(Password.encode("UTF-8"))
+        PassReplyCode = ControlSocket.recv(4096).decode("UTF-8")
+        print(str(PassReplyCode))
+    
+    return
 
-#get reply and print
-#print recv_timeout(TCPsocket)
+
+Login(port,Host)
+Message = raw_input("Message from client: ")
 
 while Message != 'QUIT':
     
@@ -115,8 +133,10 @@ while Message != 'QUIT':
         Message = ''
           
     else:
+        
         ReceivedData = ControlSocket.recv(4096).decode("UTF-8")
         print ('Received from server: ' + ReceivedData)
         Message = raw_input("Message from client: ")
+        
     
 ControlSocket.close()
