@@ -6,12 +6,13 @@ Created on Thu Feb 22 17:03:26 2018
 """
 import socket
 import time
+from itertools import chain, groupby
 
-port = 5000
-Host =   '127.0.0.1' #'ELEN4017.ug.eie.wits.ac.za'#'ftp://mirror.ac.za/'
+port = 21
+Host = '127.0.0.1' #'ELEN4017.ug.eie.wits.ac.za'#'ftp://mirror.ac.za/'
 
-ControlSocket = socket.socket()
-ControlSocket.connect((Host,port))
+#ControlSocket = socket.socket()
+#ControlSocket.connect((Host,port))
 
 def recv_timeout(the_socket,timeout=2):
     #make socket non blocking
@@ -50,7 +51,7 @@ def recv_timeout(the_socket,timeout=2):
 
 
 
-def FileTransferFromServer(port,Host):
+def ASCII_TypeFileTransferFromServer(port,Host):
     
     Fileport = port-1
     
@@ -69,7 +70,7 @@ def FileTransferFromServer(port,Host):
     return
 
 
-def FileTransferToServer(port,host):
+def ASCII_TypeFileTransferToServer(port,host): #nEED TO MAKE SURE ITS 8 BIT
     
     FilePort = port-1
     
@@ -78,14 +79,12 @@ def FileTransferToServer(port,host):
     FileTransferSocket.listen(5)  
     FileTransferConn, FileAddress = FileTransferSocket.accept()
     
-    File = open('car.jpg','rb')
+    File = open('lol.txt','rb')
     Reading = File.read(8192)
-    
     while (Reading):
              
         FileTransferConn.send(Reading)
-        Reading = File.read(8192)
-             
+        Reading = File.read(8192)         
     print("The file has finnished sending to Server")
     
     File.close()
@@ -111,11 +110,180 @@ def Login(port,Host):
         ControlSocket.send(Password.encode("UTF-8"))
         PassReplyCode = ControlSocket.recv(4096).decode("UTF-8")
         print(str(PassReplyCode))
+
+    return
+
+def ChangePort(host,port):
+    
+    #Take text input here from GUI
+    host = str(host).replace(".", ",")
+    port = hex(port)[2:]
+    PortChange = str(host) + "," + str(int(port[0:2],16)) + ","+ str(int(port[2:],16)) 
+
+    return PortChange
+
+def NoOperation(Message):
+    
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    
+    if Reply == '200 OK':
+        
+        print(Reply)
+        
+    else:
+        
+        print ("Something has gone wrong?")
     
     return
 
 
+def RuLengthEncode(x):
+#https://stackoverflow.com/questions/33250795/run-length-encoding-function-no-libraries-or-object-methods
+    prev = x[0]
+    count = 0
+    for item in x:
+        if item == prev:
+            count += 1
+        else:
+            yield prev, count
+            prev = item
+            count = 1
+    yield prev, count
+
+#print list(rle(x))
+    
+
+
+def CompressionMode2():
+    
+    with open("TEST.txt", "rb") as File:
+        
+        File = File.read()
+        r = ""
+        l = len(File)
+        if l == 0:
+            
+            return ""
+        
+        if l == 1:
+            
+            return File + "1"
+        
+        cnt = 1
+        i = 1
+        
+        while i < l:
+            
+            if File[i] == File[i - 1]: # check it is the same letter
+                
+                cnt += 1
+                
+            else:
+                
+                r = r + File[i - 1] + str(cnt) # if not, store the previous data
+                
+                cnt = 1
+                
+            i += 1
+            
+        r = r + File[i - 1] + str(cnt)
+        
+        print (str(r))
+        
+        i=0
+        while i<len(r):
+            
+            if i % 2 != 0 and r[i] == '1':
+                
+                r = r.replace("1","")
+                i=i-1
+                
+            i+=1
+            
+        print (str(r))
+        
+            
+    return
+    
+    
+    
+def EDCBIC_TypeFileTransferFromServer(port,Host):
+    
+    Fileport = port-1
+    
+    FileTransferSocket = socket.socket()
+    FileTransferSocket.connect((Host,Fileport))
+
+    with open('ClientCopy.jpg', 'wb') as File:
+        
+            print('File opened')
+            IncommingData = recv_timeout(FileTransferSocket)
+            IncommingData.decode('cp500')
+            File.write(IncommingData)
+            print ("File transfer complete")
+            File.close()
+            FileTransferSocket.close()
+
+    return
+
+
+def EDCBIC_TypeFileTransferToServer(port,host):
+    
+    FilePort = port-1
+    
+    FileTransferSocket =socket.socket()
+    FileTransferSocket.bind((Host, FilePort)) 
+    FileTransferSocket.listen(5)  
+    FileTransferConn, FileAddress = FileTransferSocket.accept()
+    
+    File = open('lol.txt','rb')
+    Reading = File.read(8192)
+    Reading.encode('cp500')
+    
+    while (Reading):
+             
+        FileTransferConn.send(Reading)
+        Reading = File.read(8192)
+        Reading.encode('cp500')
+        
+    print("The file has finnished sending to Server")
+    
+    File.close()
+    FileTransferSocket.close()
+    
+    
+    return
+
+def Image_TypeFileTransferToServer(port,host):
+    
+    FilePort = port-1
+    
+    FileTransferSocket =socket.socket()
+    FileTransferSocket.bind((Host, FilePort)) 
+    FileTransferSocket.listen(5)  
+    FileTransferConn, FileAddress = FileTransferSocket.accept()
+    
+    File = open('TEST.txt','rb')
+    Reading = File.read(8192)
+
+    while (Reading):
+             
+        FileTransferConn.send(Reading)
+        Reading = File.read(8192)
+        
+    print("The file has finnished sending to Server")
+    
+    File.close()
+    FileTransferSocket.close()
+    
+    
+    return
+
+CompressionMode2()
 Login(port,Host)
+
+
 Message = raw_input("Message from client: ")
 
 while Message != 'QUIT':
@@ -124,14 +292,27 @@ while Message != 'QUIT':
         
     if Message == 'RETR':
       
-          FileTransferFromServer(port,Host)
+          ASCII_TypeFileTransferFromServer(port,Host)
           Message = ''
           
     if Message == 'STOR':
-    
-        FileTransferToServer(port,Host)
+        
+        #EDCBIC_TypeFileTransferToServer(port,Host)
+        ASCII_TypeFileTransferToServer(port,Host)
+        #Image_TypeFileTransferToServer(port,Host)
         Message = ''
-          
+        
+    if Message == 'PORT':
+        
+        Newport = ChangePort('178.21.2.0',7000)
+        ControlSocket.send(Newport.encode("UTF-8"))
+        Message = ''
+    
+    if Message == 'NOOP':
+        
+        NoOperation(Message)
+        Message =''
+    
     else:
         
         ReceivedData = ControlSocket.recv(4096).decode("UTF-8")

@@ -9,6 +9,8 @@ Created on Sun Mar 04 15:06:43 2018
 import socket
 import os
 import time
+import ftplib
+
 
 port = 5000
 Host = '127.0.0.1'
@@ -48,7 +50,7 @@ def recv_timeout(the_socket,timeout=2):
     #join all parts to make final string
     return ''.join(total_data)
 
-def FileTransferToClient(port,Host):
+def ASCII_TypeFileTransferToClient(port,Host):
     
     FilePort = port-1
     
@@ -72,14 +74,14 @@ def FileTransferToClient(port,Host):
     
     return
 
-def FileTransferFromClient(port,Host):
+def ASCII_TypeFileTransferFromClient(port,Host):
     
     Fileport = port-1
     
     FileTransferSocket = socket.socket()
     FileTransferSocket.connect((Host,Fileport))
 
-    with open('ServerCopy.jpg', 'wb') as File:
+    with open('ServerCopy.txt', 'wb') as File:
         
             print('File opened')
             IncommingData = recv_timeout(FileTransferSocket)
@@ -142,6 +144,93 @@ def readFile(filename):
     return UserName, Password
 
 
+def ChangePort(Newport):
+    
+    Newport = Newport.split(",")
+    Host = ''
+    
+    for i in range(0,4):
+        
+        Host+= str(Newport[i])
+        if i != 3:
+            Host += "."
+        
+    Port = int(str(hex(int(Newport[4]))[2:])  + str(hex(int(Newport[5]))[2:]),16)
+    
+    return Host, Port
+
+def NoOperation(Command):
+    
+    response = "200 OK"
+    connection.send(response.encode("UTF-8")) 
+    
+    return
+
+def EDCBIC_TypeFileTransferToClient(port,Host):
+    
+    FilePort = port-1
+    
+    FileTransferSocket =socket.socket()
+    FileTransferSocket.bind((Host, FilePort)) 
+    FileTransferSocket.listen(5)  
+    FileTransferConn, FileAddress = FileTransferSocket.accept()
+    
+    File = open('cat.jpg', 'rb')
+    Reading = File.read(8192)
+    Reading.encode('cp500')
+    while (Reading):
+             
+        FileTransferConn.send(Reading)
+        Reading = File.read(8192)
+        Reading.encode('cp500')
+             
+    print("The file has finnished sending to client")
+    
+    File.close()
+    FileTransferSocket.close()
+    
+    return
+
+def EDCBIC_TypeFileTransferFromClient(port,Host):
+    
+    Fileport = port-1
+    
+    FileTransferSocket = socket.socket()
+    FileTransferSocket.connect((Host,Fileport))
+
+    with open('IBMSHIT.txt', 'wb') as File:
+        
+            print('File opened')
+            IncommingData = recv_timeout(FileTransferSocket)
+            IncommingData.decode('cp500')
+            File.write(IncommingData)
+            print ("File transfer complete")
+            File.close()
+            FileTransferSocket.close()
+
+    return
+
+
+def IMAGE_TypeFileTransferFromClient(port,Host):
+    
+    Fileport = port-1
+    
+    FileTransferSocket = socket.socket()
+    FileTransferSocket.connect((Host,Fileport))
+
+    with open('BINARY.txt', 'wb') as File:
+        
+            print('File opened')
+            IncommingData = recv_timeout(FileTransferSocket)
+            File.write(IncommingData)
+            print ("File transfer complete")
+            File.close()
+            FileTransferSocket.close()
+
+    return
+    
+
+
 #localhost = '127.0.0.1'
 #RIG = '192.168.1.44'
     
@@ -167,14 +256,26 @@ while 1:
    
     if Command == 'RETR':
         
-        FileTransferToClient(port,Host)
+        ASCII_TypeFileTransferToClient(port,Host)
         continue
     
     if Command == 'STOR':
-    
-        FileTransferFromClient(port,Host)
+        #EDCBIC_TypeFileTransferFromClient(port,Host)
+        ASCII_TypeFileTransferFromClient(port,Host)
+        #IMAGE_TypeFileTransferFromClient(port,Host)
         continue
-     
+    
+    if Command == 'PORT':
+        
+        Newport = connection.recv(4096).decode("UTF-8")
+        Host, port = ChangePort(Newport) #Should specify host and port for File transfer
+        continue
+    
+    if Command == 'NOOP':
+    
+        NoOperation(Command)
+        continue
+    
     else:
       print(Command) 
       response = (Command + " is not a valid Command")
