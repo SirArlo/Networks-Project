@@ -137,77 +137,105 @@ def NoOperation(Message):
     
     return
 
-
-def RuLengthEncode(x):
-#https://stackoverflow.com/questions/33250795/run-length-encoding-function-no-libraries-or-object-methods
-    prev = x[0]
-    count = 0
-    for item in x:
-        if item == prev:
-            count += 1
-        else:
-            yield prev, count
-            prev = item
-            count = 1
-    yield prev, count
-
-#print list(rle(x))
-    
-
-
-def CompressionMode2():
+def CompressionMode():
     
     with open("TEST.txt", "rb") as File:
         
         File = File.read()
         r = ""
         l = len(File)
+        
         if l == 0:
             
             return ""
         
         if l == 1:
             
-            return File + "1"
+            return File
         
         cnt = 1
         i = 1
-        
+        Map = []
         while i < l:
             
-            if File[i] == File[i - 1]: # check it is the same letter
+            if File[i] == File[i - 1]:
                 
                 cnt += 1
                 
             else:
                 
-                r = r + File[i - 1] + str(cnt) # if not, store the previous data
-                
+                r = r + File[i - 1] 
+                Map.append(cnt)
                 cnt = 1
                 
             i += 1
             
-        r = r + File[i - 1] + str(cnt)
-        
-        print (str(r))
-        
-        i=0
-        while i<len(r):
+        r = r + File[i - 1]
+        Map.append(cnt)
+       
+        counter = 0
+        i = 0
+        while i <len(r):
             
-            if i % 2 != 0 and r[i] == '1':
+            if Map[i] == 1:
                 
-                r = r.replace("1","")
-                i=i-1
-                
-            i+=1
-            
-        print (str(r))
+                counter += 1
         
+            else:
+                
+                if counter > 0:
+                           
+                    start = i -1 -counter
+
+                    while counter >= 127:
+
+                     print ("Blocktosend") 
+                     print('01111111' + string2bits(r[start:start + 127],8)) 
+                     start = start + 127
+                     counter = counter - 127
+                     
+                    if counter > 0 and counter < 127:
+                        
+                     print ("Blocktosend") 
+                     print('01111111' + string2bits(r[start:start + counter],8)) 
+                        
+
+                if Map[i] > 1:
+ 
+                    NumberBlocks = Map[i] 
+                    
+                    while NumberBlocks >= 63:
+                        
+                        print ("Compressed")
+                        print('10111111' + str(string2bits(r[i],8)))
+                        NumberBlocks = NumberBlocks - 63
+                        
+                    if NumberBlocks > 0 and NumberBlocks < 63:
+                        
+                        print ("Compressed")
+                        print('10' + Number2bits(NumberBlocks,6) + str(string2bits(r[i],8)))
+                        
+                counter = 0  
+            i +=1
             
     return
+
     
+def string2bits(s='', bitnumer=8):
     
+    List = [bin(ord(x))[2:].zfill(bitnumer) for x in s]
     
+    return ''.join(List)
+
+
+def Number2bits(Number, NoBits):
+    
+    Number = bin(Number)[2:]
+    
+    return str(Number).zfill(NoBits)
+
+
+
 def EDCBIC_TypeFileTransferFromServer(port,Host):
     
     Fileport = port-1
@@ -280,7 +308,7 @@ def Image_TypeFileTransferToServer(port,host):
     
     return
 
-CompressionMode2()
+CompressionMode()
 Login(port,Host)
 
 

@@ -9,8 +9,6 @@ Created on Sun Mar 04 15:06:43 2018
 import socket
 import os
 import time
-import ftplib
-
 
 port = 5000
 Host = '127.0.0.1'
@@ -228,8 +226,38 @@ def IMAGE_TypeFileTransferFromClient(port,Host):
             FileTransferSocket.close()
 
     return
+ 
     
+def CompressionMode():
+    
+    
+    with open('BINARY.txt', 'rb') as File:
+        
+        File =File.read()
+        Binary = File
+        Header = Binary[0:1]
+        
+        if Header == '1':
+            
+         Number = int(Binary[1:8],2)
+         
+         i =0
+         while i<Number:
+             
+             print(chr(int(Binary[9:16],2)))
+             
+             i += 1
+             
+             
+        if Header == '0':
+         
+         print(''.join(chr(int(Binary[i:i+8], 2)) for i in xrange(8, len(Binary), 8)))
+    
+    return
 
+
+
+CompressionMode()
 
 #localhost = '127.0.0.1'
 #RIG = '192.168.1.44'
