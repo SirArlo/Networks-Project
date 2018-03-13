@@ -70,7 +70,7 @@ def ASCII_TypeFileTransferFromServer(port,Host):
     return
 
 
-def ASCII_TypeFileTransferToServer(port,host): #nEED TO MAKE SURE ITS 8 BIT
+def ASCII_TypeFileTransferToServer(port,host): #NEED TO MAKE SURE ITS 8 BIT
     
     FilePort = port-1
     
@@ -172,7 +172,9 @@ def CompressionMode():
             
         r = r + File[i - 1]
         Map.append(cnt)
-       
+        print(Map)
+        print(r)
+        print (len(r))
         counter = 0
         i = 0
         while i <len(r):
@@ -182,11 +184,10 @@ def CompressionMode():
                 counter += 1
         
             else:
-                
-                if counter > 0:
+                print( "counter: " + str(counter))
+                if counter > 0 :
                            
-                    start = i -1 -counter
-
+                    start = i -counter
                     while counter >= 127:
 
                      print ("Blocktosend") 
@@ -195,12 +196,11 @@ def CompressionMode():
                      counter = counter - 127
                      
                     if counter > 0 and counter < 127:
-                        
-                     print ("Blocktosend") 
-                     print('01111111' + string2bits(r[start:start + counter],8)) 
-                        
 
-                if Map[i] > 1:
+                        print ("Blocktosend") 
+                        print('0' + Number2bits(counter,7) + string2bits(r[start:start + counter],8)) 
+                      
+                if Map[i] > 1 and r[i] != ' ':
  
                     NumberBlocks = Map[i] 
                     
@@ -215,8 +215,42 @@ def CompressionMode():
                         print ("Compressed")
                         print('10' + Number2bits(NumberBlocks,6) + str(string2bits(r[i],8)))
                         
+                if Map[i] > 1 and r[i] == ' ':
+                   
+                    NumberBlocks = Map[i] 
+                    
+                    while NumberBlocks >= 63:
+                        
+                        print ("Compressed space")
+                        print('11' + Number2bits(NumberBlocks,6))
+                        NumberBlocks = NumberBlocks - 63
+                        
+                    if NumberBlocks > 0 and NumberBlocks < 63:
+                        
+                        print ("Compressed space")
+                        print('11' + Number2bits(NumberBlocks,6))
+                
                 counter = 0  
+                
             i +=1
+
+        print( "counter: " + str(counter))
+        if counter > 0 :
+               
+            start = i -counter
+            print("Start  " + str(start))
+            while counter >= 127:
+    
+             print ("Blocktosend") 
+             print('01111111' + string2bits(r[start:start + 127],8)) 
+             start = start + 127
+             counter = counter - 127
+             
+            if counter > 0 and counter < 127:
+    
+                print ("Blocktosend") 
+                print('0' + Number2bits(counter,7) + string2bits(r[start:start + counter],8)) 
+                      
             
     return
 
