@@ -62,7 +62,7 @@ def ASCII_TypeFileTransferToClient(port,Host):
     
     while (Reading):
              
-        FileTransferConn.send(Reading)
+        FileTransferConn.send(Reading.encode('UTF-8'))
         Reading = File.read(8192)
              
     print("The file has finnished sending to client")
@@ -83,6 +83,7 @@ def ASCII_TypeFileTransferFromClient(port,Host):
         
             print('File opened')
             IncommingData = recv_timeout(FileTransferSocket)
+            IncommingData.decode('UTF-8')
             File.write(IncommingData)
             print ("File transfer complete")
             File.close()
@@ -226,6 +227,30 @@ def IMAGE_TypeFileTransferFromClient(port,Host):
             FileTransferSocket.close()
 
     return
+
+def IMAGE_TypeFileTransferToClient(port,Host):
+    
+    FilePort = port-1
+    
+    FileTransferSocket =socket.socket()
+    FileTransferSocket.bind((Host, FilePort)) 
+    FileTransferSocket.listen(5)  
+    FileTransferConn, FileAddress = FileTransferSocket.accept()
+    
+    File = open('TEST.txt','rb')
+    Reading = File.read(1)
+
+    while (Reading):
+             
+        FileTransferConn.send(Reading)
+        Reading = File.read(1)
+        
+    print("The file has finnished sending to Server")
+    
+    File.close()
+    FileTransferSocket.close()
+
+    return
  
     
 def CompressionMode():
@@ -282,6 +307,77 @@ def CompressionMode():
     return
 
 
+def BlockModeReceive(MarkerPosition =0):
+    
+    #128 is EOR ----------> No point in this 
+    #64 is EOF ----------> done
+    #32 is errors -------> no point in this
+    #16 marker ---------->done
+
+    with open("BINARY.txt", "rb") as File:
+        
+        File = File.read()
+        
+        
+        if MarkerPosition !=0:
+            
+            k = MarkerPosition
+            Header = File[k:k+24]
+            
+        else:
+            Header = File[0:24]
+            k =0
+        
+        while 1:
+
+            if Header[0:8] == '01000000':
+                
+                #then it is EOF
+                Number = int(Header[8:24],2)
+                 
+                print(''.join(chr(int(File[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                
+            if Header[0:8] == '00000000':
+                
+                #There are no EOR/EOF/Errors/Markers
+                Number = int(Header[8:24],2)
+                print(''.join(chr(int(File[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+            
+            if Header[0:8] == '10000000':
+                
+                Number = int(Header[8:24],2)
+                #Suspected errors
+            
+            if Header[0:8] == '00100000':
+                
+                Number = int(Header[8:24],2)
+                #THere is an EOR
+                
+            if Header[0:8]== '00010000':
+                
+                #there are markers
+                MarkerPosition = k + Number*8 + 24
+                Number = int(Header[8:24],2)
+                 
+                print(''.join(chr(int(File[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                
+            Header = File[k + Number*8 + 8 : k + Number*8 + 16] 
+            k += Number*8 + 24
+                
+            if k == len(File):
+                break
+    
+    return MarkerPosition
+
+def RestartFileTransfer(MarkerPosition):
+    
+    
+    BlockModeReceive(MarkerPosition)
+    
+    return
+
+
+MarkerPosition = BlockModeReceive(MarkerPosition=0)
 
 CompressionMode()
 print("lol")
@@ -329,6 +425,12 @@ while 1:
     if Command == 'NOOP':
     
         NoOperation(Command)
+        continue
+    
+    if Command == 'REST':
+        
+        MarkerPosition = 0 #defualt value
+        RestartFileTransfer(MarkerPosition) 
         continue
     
     else:

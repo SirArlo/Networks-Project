@@ -6,7 +6,7 @@ Created on Thu Feb 22 17:03:26 2018
 """
 import socket
 import time
-from itertools import chain, groupby
+
 
 port = 21
 Host = '127.0.0.1' #'ELEN4017.ug.eie.wits.ac.za'#'ftp://mirror.ac.za/'
@@ -62,6 +62,7 @@ def ASCII_TypeFileTransferFromServer(port,Host):
         
             print('File opened')
             IncommingData = recv_timeout(FileTransferSocket)
+            IncommingData.decode('UTF-8')
             File.write(IncommingData)
             print ("File transfer complete")
             File.close()
@@ -83,7 +84,7 @@ def ASCII_TypeFileTransferToServer(port,host): #NEED TO MAKE SURE ITS 8 BIT
     Reading = File.read(8192)
     while (Reading):
              
-        FileTransferConn.send(Reading)
+        FileTransferConn.send(Reading.encode('UTF-8'))
         Reading = File.read(8192)         
     print("The file has finnished sending to Server")
     
@@ -254,6 +255,55 @@ def CompressionMode():
             
     return
 
+def BlockModeSend(MarkerPosition =0): # Still needs work for the EOR/ERRORs/MArkers
+    
+    #128 is EOR ----------> No point in this 
+    #64 is EOF ----------> done
+    #32 is errors -------> no point in this
+    #16 marker ---------->done
+    
+    with open("TEST.txt", "rb") as File:
+        
+        File = File.read()
+        NumberOfBytes = len(File)
+        Marker = "rrrrrr"
+        
+        if MarkerPosition != 0: 
+            
+            start = MarkerPosition
+            
+        else:
+            
+            start = 0
+
+
+        if NumberOfBytes > 65536:
+            end = start + 65536
+        else:
+            end = NumberOfBytes
+
+        while NumberOfBytes > 65535:
+            
+            end = start + 65536
+            print("Block to send")
+            print("000000001111111111111111" + string2bits(str(File[start:end])))
+            print("000100000000000000000110" + string2bits(Marker))
+            NumberOfBytes - 65535
+            start += 65536
+            
+        if NumberOfBytes > 0 and NumberOfBytes < 65535:
+            
+            #this must contain the end of file byte
+            print("01000000" + Number2bits(NumberOfBytes,16) + string2bits(File[start:end+1]))
+        
+    return 
+
+def Restart(MarkerPosition):
+    
+    BlockModeSend(MarkerPosition)
+    
+    return
+
     
 def string2bits(s='', bitnumer=8):
     
@@ -319,6 +369,7 @@ def EDCBIC_TypeFileTransferToServer(port,host):
 
 def Image_TypeFileTransferToServer(port,host):
     
+    #Need  to add padding for end of file/record of 000?
     FilePort = port-1
     
     FileTransferSocket =socket.socket()
@@ -327,12 +378,12 @@ def Image_TypeFileTransferToServer(port,host):
     FileTransferConn, FileAddress = FileTransferSocket.accept()
     
     File = open('TEST.txt','rb')
-    Reading = File.read(8192)
+    Reading = File.read(1)
 
     while (Reading):
              
         FileTransferConn.send(Reading)
-        Reading = File.read(8192)
+        Reading = File.read(1)
         
     print("The file has finnished sending to Server")
     
@@ -342,6 +393,28 @@ def Image_TypeFileTransferToServer(port,host):
     
     return
 
+
+def IMAGE_TypeFileTransferFromServer(port,Host):
+    
+    #Need  to add padding for end of file/record of 000?
+    Fileport = port-1
+    
+    FileTransferSocket = socket.socket()
+    FileTransferSocket.connect((Host,Fileport))
+
+    with open('BINARY.txt', 'wb') as File:
+        
+            print('File opened')
+            IncommingData = recv_timeout(FileTransferSocket)
+            File.write(IncommingData)
+            print ("File transfer complete")
+            File.close()
+            FileTransferSocket.close()
+
+    return
+
+
+BlockModeSend(MarkerPosition=0)
 CompressionMode()
 Login(port,Host)
 
@@ -375,6 +448,11 @@ while Message != 'QUIT':
         NoOperation(Message)
         Message =''
     
+    if Message == 'REST':
+        MarkerPosition =0 # default this to 0
+        Restart(MarkerPosition) 
+        Message =''
+        
     else:
         
         ReceivedData = ControlSocket.recv(4096).decode("UTF-8")
