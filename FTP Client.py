@@ -9,10 +9,10 @@ import time
 
 
 port = 21
-Host = '127.0.0.1' #'ELEN4017.ug.eie.wits.ac.za'#'ftp://mirror.ac.za/'
+Host = 'ftp.dlptest.com'#'ftp.mirror.ac.za'  #'127.0.0.1' #''#'ftp://mirror.ac.za/'
 
-#ControlSocket = socket.socket()
-#ControlSocket.connect((Host,port))
+ControlSocket = socket.socket()
+ControlSocket.connect((Host,port))
 
 def recv_timeout(the_socket,timeout=2):
     #make socket non blocking
@@ -51,14 +51,22 @@ def recv_timeout(the_socket,timeout=2):
 
 
 
-def ASCII_TypeFileTransferFromServer(port,Host):
+def ASCII_TypeFileTransferFromServer(Message):#This works 100 % needs exceptions
     
-    Fileport = port-1
+    #dlpuser@dlptest.com
+    #eiTqR7EMZD5zy7M
     
-    FileTransferSocket = socket.socket()
+    Host,Fileport = passiveMode()
+    
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Fileport))
+    
+    Message = Message +' cat.jpg'+ '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
-    with open('ClientCopy.jpg', 'wb') as File:
+    with open('TURD.jpg', 'wb') as File:
         
             print('File opened')
             IncommingData = recv_timeout(FileTransferSocket)
@@ -67,50 +75,78 @@ def ASCII_TypeFileTransferFromServer(port,Host):
             print ("File transfer complete")
             File.close()
             FileTransferSocket.close()
+            
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
     return
 
 
-def ASCII_TypeFileTransferToServer(port,host): #NEED TO MAKE SURE ITS 8 BIT
+def ASCII_TypeFileTransferToServer(Message): #This works 100 % needs exceptions
+    #
+    #dlpuser@dlptest.com
+    #eiTqR7EMZD5zy7M
     
-    FilePort = port-1
+    Host,Fileport = passiveMode()
     
-    FileTransferSocket =socket.socket()
-    FileTransferSocket.bind((Host, FilePort)) 
-    FileTransferSocket.listen(5)  
-    FileTransferConn, FileAddress = FileTransferSocket.accept()
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.connect((Host,Fileport))
     
-    File = open('lol.txt','rb')
+    Message = Message +' cat.jpg'+ '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+
+
+    File = open('cat.jpg','rb')
     Reading = File.read(8192)
+    
     while (Reading):
-             
-        FileTransferConn.send(Reading.encode('UTF-8'))
-        Reading = File.read(8192)         
+        
+        print('reading file')
+        FileTransferSocket.send(Reading.encode('UTF-8'))
+        Reading = File.read(8192)  
     print("The file has finnished sending to Server")
     
     File.close()
     FileTransferSocket.close()
     
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
     
     return
 
-def Login(port,Host):
+def Login(port,Host): #This is working 100% just maybe some exceptions?
+    
+    #Establish the connection hopefully receiving the 220 Service Ready
+    
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print("Reply from server:\n" + str(Reply))
+    
     
     UsernameReplyCode = ''
-    while UsernameReplyCode != '331 User name ok':
+    while 1:
         
-        Username = raw_input("USER")
+        Username = raw_input("USER ")
+        Username = "USER " + Username + '\r\n'
         ControlSocket.send(Username.encode("UTF-8"))
         UsernameReplyCode = ControlSocket.recv(4096).decode("UTF-8")
-        print(str(UsernameReplyCode))
-    
-    PassReplyCode =''
-    while PassReplyCode != '230 User logged in' :
+        print( "Reply from server: \n" + str(UsernameReplyCode))
         
-        Password = raw_input("PASS")
+        if UsernameReplyCode[0:3] == '331' or UsernameReplyCode[0:3] =='230':
+            break
+        
+    PassReplyCode =''
+    while 1:
+        
+        Password = raw_input("PASS ")
+        Password = "PASS " + Password + '\r\n'
         ControlSocket.send(Password.encode("UTF-8"))
         PassReplyCode = ControlSocket.recv(4096).decode("UTF-8")
-        print(str(PassReplyCode))
+        print('Reply from server: \n' + str(PassReplyCode))
+        
+        if PassReplyCode[0:3] == '230':
+            break
 
     return
 
@@ -119,24 +155,76 @@ def ChangePort(host,port):
     #Take text input here from GUI
     host = str(host).replace(".", ",")
     port = hex(port)[2:]
-    PortChange = str(host) + "," + str(int(port[0:2],16)) + ","+ str(int(port[2:],16)) 
-
-    return PortChange
-
-def NoOperation(Message):
+    PortChange = str(host) + "," + str(int(port[0:2],16)) + ","+ str(int(port[2:],16))
     
-    ControlSocket.send(Message.encode("UTF-8"))
+    Request = 'PORT ' + PortChange + '\r\n'
+    
+    ControlSocket.send(Request.encode("UTF-8"))
     Reply = ControlSocket.recv(4096).decode("UTF-8")
     
-    if Reply == '200 OK':
+    print(Reply)
+    
+    return PortChange
+
+def NoOperation(Message):#This is working 100% just maybe some exceptions?
+    
+    Message = Message +'\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+
+    if Reply[0:3] == '200':
         
         print(Reply)
         
     else:
         
         print ("Something has gone wrong?")
+        print(Reply)
     
     return
+
+def List(Message,port,Host):#This is working 100% just maybe some exceptions?
+    
+    #dlpuser@dlptest.com
+    #eiTqR7EMZD5zy7M
+    Message = Message + '\r\n'
+
+    Host,Fileport = passiveMode()
+    
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.connect((Host,Fileport))
+    
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    
+    print('Control connection: \n' + str(Reply))
+    
+    Reply = FileTransferSocket.recv(4096).decode("UTF-8")
+    print('Data port reply:\n ' + str(Reply))
+    
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection:\n ' + str(Reply))
+
+    
+    return
+
+def passiveMode():#This is working 100% just maybe some exceptions?
+    
+    Message = 'PASV\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print( '\n' + str(Reply))
+    start = Reply.find('(')
+    end = Reply.find(')')
+    Reply = Reply[start+1:end]
+    Reply = Reply.split(',')
+    Host = str(Reply[0]) + '.'+ str(Reply[1]) +'.'+ str(Reply[2]) +'.'+ str(Reply[3])
+    Port = (int(Reply[4])*256) + int(Reply[5])
+    print('New host Data Connection: \n' + str(Host))
+    print('New port Data Connection:\n ' + str(Port))
+    
+    return Host,Port
+
 
 def CompressionMode():
     
@@ -367,42 +455,59 @@ def EDCBIC_TypeFileTransferToServer(port,host):
     
     return
 
-def Image_TypeFileTransferToServer(port,host):
+def Image_TypeFileTransferToServer(Message):
     
     #Need  to add padding for end of file/record of 000?
-    FilePort = port-1
+    #
+    #dlpuser@dlptest.com
+    #eiTqR7EMZD5zy7M
     
-    FileTransferSocket =socket.socket()
-    FileTransferSocket.bind((Host, FilePort)) 
-    FileTransferSocket.listen(5)  
-    FileTransferConn, FileAddress = FileTransferSocket.accept()
+    Host,Fileport = passiveMode()
     
-    File = open('TEST.txt','rb')
-    Reading = File.read(1)
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.connect((Host,Fileport))
+    
+    Message = Message +' cat.jpg'+ '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
+
+    File = open('cat.jpg','rb')
+    Reading = File.read(1)
+    
     while (Reading):
-             
-        FileTransferConn.send(Reading)
-        Reading = File.read(1)
         
+        print('reading file')
+        FileTransferSocket.send(Reading)
+        Reading = File.read(1)  
     print("The file has finnished sending to Server")
     
     File.close()
     FileTransferSocket.close()
     
-    
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+
     return
 
 
-def IMAGE_TypeFileTransferFromServer(port,Host):
-    
+def IMAGE_TypeFileTransferFromServer(Message):
     #Need  to add padding for end of file/record of 000?
-    Fileport = port-1
+    #dlpuser@dlptest.com
+    #eiTqR7EMZD5zy7M
     
-    FileTransferSocket = socket.socket()
+    Host,Fileport = passiveMode()
+    
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Fileport))
+    
+    Message = Message +' cat.jpg'+ '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
-    with open('BINARY.txt', 'wb') as File:
+    with open('TURD.jpg', 'wb') as File:
         
             print('File opened')
             IncommingData = recv_timeout(FileTransferSocket)
@@ -410,48 +515,56 @@ def IMAGE_TypeFileTransferFromServer(port,Host):
             print ("File transfer complete")
             File.close()
             FileTransferSocket.close()
+            
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
     return
 
-
-BlockModeSend(MarkerPosition=0)
-CompressionMode()
 Login(port,Host)
 
+Message = ''
 
-Message = raw_input("Message from client: ")
-
-while Message != 'QUIT':
+while 1:
     
-    ControlSocket.send(Message.encode("UTF-8"))
-        
+    Message = raw_input("Message from client: ")
+    
     if Message == 'RETR':
       
-          ASCII_TypeFileTransferFromServer(port,Host)
-          Message = ''
+          #ASCII_TypeFileTransferFromServer(Message)
+          IMAGE_TypeFileTransferFromServer(Message)
+          continue
           
     if Message == 'STOR':
         
         #EDCBIC_TypeFileTransferToServer(port,Host)
-        ASCII_TypeFileTransferToServer(port,Host)
-        #Image_TypeFileTransferToServer(port,Host)
-        Message = ''
+        #ASCII_TypeFileTransferToServer(Message)
+        Image_TypeFileTransferToServer(Message)
+        continue
         
     if Message == 'PORT':
         
         Newport = ChangePort('178.21.2.0',7000)
         ControlSocket.send(Newport.encode("UTF-8"))
-        Message = ''
+        continue
     
     if Message == 'NOOP':
-        
+
         NoOperation(Message)
-        Message =''
+        continue
     
     if Message == 'REST':
         MarkerPosition =0 # default this to 0
         Restart(MarkerPosition) 
-        Message =''
+        continue
+    
+    if Message == 'LIST':
+        #LIST [<SP> <pathname>] <CRLF>
+        List(Message,port,Host)
+        continue
+    
+    if Message == 'QUIT':
+        break
         
     else:
         
