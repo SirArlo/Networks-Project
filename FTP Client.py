@@ -9,11 +9,13 @@ import time
 
 
 port = 21
-Host = 'ftp.dlptest.com'#'ftp.mirror.ac.za'  #'127.0.0.1' #''#'ftp://mirror.ac.za/'
+Host = 'localhost'#'speedtest.tele2.net'#'ftp.mirror.ac.za'  #'66.220.9.50'##'127.0.0.1' #''#'ftp://mirror.ac.za/'
 
 ControlSocket = socket.socket()
 ControlSocket.connect((Host,port))
 
+###################################################
+##############NEEDS REWRITING######################
 def recv_timeout(the_socket,timeout=2):
     #make socket non blocking
     the_socket.setblocking(0)
@@ -48,20 +50,19 @@ def recv_timeout(the_socket,timeout=2):
      
     #join all parts to make final string
     return ''.join(total_data)
+###########################################################
+###########################################################
 
-
-
-def ASCII_TypeFileTransferFromServer(Message):#This works 100 % needs exceptions
+#########This works 100 % needs exceptions##################
+def ASCII_TypeFileTransferFromServer(Message,filename):
     
-    #dlpuser@dlptest.com
-    #eiTqR7EMZD5zy7M
-    
+
     Host,Fileport = passiveMode()
     
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Fileport))
     
-    Message = Message +' cat.jpg'+ '\r\n'
+    Message = Message + ' ' + filename + '\r\n'
     ControlSocket.send(Message.encode("UTF-8"))
     Reply = ControlSocket.recv(4096).decode("UTF-8")
     print('Control connection reply: \n' + str(Reply))
@@ -81,24 +82,20 @@ def ASCII_TypeFileTransferFromServer(Message):#This works 100 % needs exceptions
 
     return
 
-
-def ASCII_TypeFileTransferToServer(Message): #This works 100 % needs exceptions
-    #
-    #dlpuser@dlptest.com
-    #eiTqR7EMZD5zy7M
-    
+##################This works 100 % needs exceptions####################   
+def ASCII_TypeFileTransferToServer(Message,filename): 
     Host,Fileport = passiveMode()
     
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Fileport))
     
-    Message = Message +' cat.jpg'+ '\r\n'
+    Message = Message +' ' + filename + '\r\n'
     ControlSocket.send(Message.encode("UTF-8"))
     Reply = ControlSocket.recv(4096).decode("UTF-8")
     print('Control connection reply: \n' + str(Reply))
 
 
-    File = open('cat.jpg','rb')
+    File = open(filename,'rb')
     Reading = File.read(8192)
     
     while (Reading):
@@ -116,18 +113,20 @@ def ASCII_TypeFileTransferToServer(Message): #This works 100 % needs exceptions
     
     return
 
-def Login(port,Host): #This is working 100% just maybe some exceptions?
+##################This works 100 % needs exceptions#################### 
+def Login(port,Host): 
     
     #Establish the connection hopefully receiving the 220 Service Ready
-    
     Reply = ControlSocket.recv(4096).decode("UTF-8")
     print("Reply from server:\n" + str(Reply))
-    
     
     UsernameReplyCode = ''
     while 1:
         
-        Username = raw_input("USER ")
+        #Username = 'dlpuser@dlptest.com'
+        #Username = 'anonymous'
+        Username = 'Arlo'
+        #Username = raw_input("USER ")
         Username = "USER " + Username + '\r\n'
         ControlSocket.send(Username.encode("UTF-8"))
         UsernameReplyCode = ControlSocket.recv(4096).decode("UTF-8")
@@ -139,7 +138,9 @@ def Login(port,Host): #This is working 100% just maybe some exceptions?
     PassReplyCode =''
     while 1:
         
-        Password = raw_input("PASS ")
+        Password = 'PASS'
+        #Password = 'eiTqR7EMZD5zy7M'
+        #Password = raw_input("PASS ")
         Password = "PASS " + Password + '\r\n'
         ControlSocket.send(Password.encode("UTF-8"))
         PassReplyCode = ControlSocket.recv(4096).decode("UTF-8")
@@ -150,12 +151,19 @@ def Login(port,Host): #This is working 100% just maybe some exceptions?
 
     return
 
-def ChangePort(host,port):
+###################################################
+#################NEEDS TESTING#####################
+def ChangePort(host,port,Host): 
     
     #Take text input here from GUI
+    FileHost = '127.0.0.1'
+    FilePOrt = 7000
+    
     host = str(host).replace(".", ",")
     port = hex(port)[2:]
     PortChange = str(host) + "," + str(int(port[0:2],16)) + ","+ str(int(port[2:],16))
+    
+    print(PortChange)
     
     Request = 'PORT ' + PortChange + '\r\n'
     
@@ -164,9 +172,45 @@ def ChangePort(host,port):
     
     print(Reply)
     
-    return PortChange
 
-def NoOperation(Message):#This is working 100% just maybe some exceptions?
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.connect((FileHost,FilePOrt))
+    print('hererere')
+    
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    
+    print(Reply)
+    
+    Message = raw_input('Message to server:')
+    
+    Message = Message +' lol.txt'+ '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+
+
+    File = open('lol.txt','rb')
+    Reading = File.read(8192)
+    
+    while (Reading):
+        
+        print('reading file')
+        FileTransferSocket.send(Reading.encode('UTF-8'))
+        Reading = File.read(8192)  
+    print("The file has finnished sending to Server")
+    
+    File.close()
+    FileTransferSocket.close()
+    
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+    
+    return PortChange
+###################################################
+###################################################
+
+##################This Wokrs 100%#################
+def NoOperation(Message):
     
     Message = Message +'\r\n'
     ControlSocket.send(Message.encode("UTF-8"))
@@ -183,10 +227,9 @@ def NoOperation(Message):#This is working 100% just maybe some exceptions?
     
     return
 
-def List(Message,port,Host):#This is working 100% just maybe some exceptions?
+##################This Wokrs 100%#################
+def List(Message,port,Host):
     
-    #dlpuser@dlptest.com
-    #eiTqR7EMZD5zy7M
     Message = Message + '\r\n'
 
     Host,Fileport = passiveMode()
@@ -205,10 +248,10 @@ def List(Message,port,Host):#This is working 100% just maybe some exceptions?
     Reply = ControlSocket.recv(4096).decode("UTF-8")
     print('Control connection:\n ' + str(Reply))
 
-    
     return
 
-def passiveMode():#This is working 100% just maybe some exceptions?
+##################This Wokrs 100%#################
+def passiveMode():
     
     Message = 'PASV\r\n'
     ControlSocket.send(Message.encode("UTF-8"))
@@ -224,8 +267,9 @@ def passiveMode():#This is working 100% just maybe some exceptions?
     print('New port Data Connection:\n ' + str(Port))
     
     return Host,Port
-
-
+ 
+####################################################
+################NEEDS TESTING######################
 def CompressionMode():
     
     with open("TEST.txt", "rb") as File:
@@ -342,14 +386,18 @@ def CompressionMode():
                       
             
     return
+####################################################
+####################################################
 
-def BlockModeSend(MarkerPosition =0): # Still needs work for the EOR/ERRORs/MArkers
-    
+
+####################################################
+################NEEDS TESTING######################
+def BlockModeSend(MarkerPosition =0): 
+    # Still needs work for the EOR/ERRORs/MArkers
     #128 is EOR ----------> No point in this 
     #64 is EOF ----------> done
     #32 is errors -------> no point in this
     #16 marker ---------->done
-    
     with open("TEST.txt", "rb") as File:
         
         File = File.read()
@@ -386,13 +434,21 @@ def BlockModeSend(MarkerPosition =0): # Still needs work for the EOR/ERRORs/MArk
         
     return 
 
+####################################################
+####################################################
+
+
+####################################################
+################NEEDS TESTING######################
 def Restart(MarkerPosition):
     
     BlockModeSend(MarkerPosition)
     
     return
 
-    
+####################################################
+####################################################
+
 def string2bits(s='', bitnumer=8):
     
     List = [bin(ord(x))[2:].zfill(bitnumer) for x in s]
@@ -407,15 +463,23 @@ def Number2bits(Number, NoBits):
     return str(Number).zfill(NoBits)
 
 
-
-def EDCBIC_TypeFileTransferFromServer(port,Host):
+####################################################
+################NEEDS TESTING######################
+def EDCBIC_TypeFileTransferFromServer(Message,filename):
     
-    Fileport = port-1
+    Host,Fileport = passiveMode()
     
-    FileTransferSocket = socket.socket()
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Fileport))
+    
+    changeType('E')
+    
+    Message = Message +' ' + filename+ '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
-    with open('ClientCopy.jpg', 'wb') as File:
+    with open('EDCBIC.txt', 'wb') as File:
         
             print('File opened')
             IncommingData = recv_timeout(FileTransferSocket)
@@ -424,26 +488,37 @@ def EDCBIC_TypeFileTransferFromServer(port,Host):
             print ("File transfer complete")
             File.close()
             FileTransferSocket.close()
+            
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
     return
+####################################################
+####################################################
 
+####################################################
+################NEEDS TESTING######################
+def EDCBIC_TypeFileTransferToServer(Message,filename):
+    
+    Host,Fileport = passiveMode()
+    
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.connect((Host,Fileport))
+    
+    changeType('E')
+    
+    Message = Message +' ' + filename + '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
 
-def EDCBIC_TypeFileTransferToServer(port,host):
-    
-    FilePort = port-1
-    
-    FileTransferSocket =socket.socket()
-    FileTransferSocket.bind((Host, FilePort)) 
-    FileTransferSocket.listen(5)  
-    FileTransferConn, FileAddress = FileTransferSocket.accept()
-    
-    File = open('lol.txt','rb')
+    File = open(filename,'rb')
     Reading = File.read(8192)
     Reading.encode('cp500')
     
     while (Reading):
              
-        FileTransferConn.send(Reading)
+        FileTransferSocket.send(Reading)
         Reading = File.read(8192)
         Reading.encode('cp500')
         
@@ -452,10 +527,16 @@ def EDCBIC_TypeFileTransferToServer(port,host):
     File.close()
     FileTransferSocket.close()
     
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+    
     
     return
-
-def Image_TypeFileTransferToServer(Message):
+####################################################
+####################################################
+    
+##################This Wokrs 100%#################
+def Image_TypeFileTransferToServer(Message,filename):
     
     #Need  to add padding for end of file/record of 000?
     #
@@ -467,18 +548,20 @@ def Image_TypeFileTransferToServer(Message):
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Fileport))
     
-    Message = Message +' cat.jpg'+ '\r\n'
+    changeType('I')
+    
+    Message = Message +' ' + filename + '\r\n'
     ControlSocket.send(Message.encode("UTF-8"))
     Reply = ControlSocket.recv(4096).decode("UTF-8")
     print('Control connection reply: \n' + str(Reply))
 
 
-    File = open('cat.jpg','rb')
-    Reading = File.read(1)
-    
+    File = open(filename,'rb')
+    Reading = File.read(1) #this needs to be 1 for actual image 
+    print('reading file')
     while (Reading):
         
-        print('reading file')
+        
         FileTransferSocket.send(Reading)
         Reading = File.read(1)  
     print("The file has finnished sending to Server")
@@ -490,9 +573,13 @@ def Image_TypeFileTransferToServer(Message):
     print('Control connection reply: \n' + str(Reply))
 
     return
+####################################################
+    
 
-
-def IMAGE_TypeFileTransferFromServer(Message):
+##################This Wokrs 100%#################
+def IMAGE_TypeFileTransferFromServer(Message,filename): 
+    
+   
     #Need  to add padding for end of file/record of 000?
     #dlpuser@dlptest.com
     #eiTqR7EMZD5zy7M
@@ -502,12 +589,14 @@ def IMAGE_TypeFileTransferFromServer(Message):
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Fileport))
     
-    Message = Message +' cat.jpg'+ '\r\n'
+    changeType('I')
+    
+    Message = Message +' ' + filename+ '\r\n'
     ControlSocket.send(Message.encode("UTF-8"))
     Reply = ControlSocket.recv(4096).decode("UTF-8")
     print('Control connection reply: \n' + str(Reply))
 
-    with open('TURD.jpg', 'wb') as File:
+    with open('TURD.mp3', 'wb') as File:
         
             print('File opened')
             IncommingData = recv_timeout(FileTransferSocket)
@@ -520,6 +609,134 @@ def IMAGE_TypeFileTransferFromServer(Message):
     print('Control connection reply: \n' + str(Reply))
 
     return
+####################################################
+    
+
+##################This Wokrs 100%#################
+def changeType(SecondParam, ThirdParam=''):
+    
+    Message = 'TYPE'
+    if ThirdParam == '':
+        
+            Message = Message + ' ' + SecondParam +'\r\n'
+            
+    else:
+            Message = Message + ' ' + SecondParam +'\r\n'
+        
+            
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+    
+    
+    return
+
+
+##################This Wokrs 100%#################
+def Mode(Message,code):
+    
+    #MODE <SP> <mode-code> <CRLF>
+    
+    Message = Message + ' ' + code + '\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+    
+    return
+
+
+####################################################
+################NEEDS TESTING######################
+def BlockModeReceive(MarkerPosition =0):
+    
+    #128 is EOR ----------> No point in this 
+    #64 is EOF ----------> done
+    #32 is errors -------> no point in this
+    #16 marker ---------->done
+    
+    Host,Fileport = passiveMode()
+    
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.connect((Host,Fileport))
+    IncommingData = recv_timeout(FileTransferSocket)
+
+    with open("BLOCKMODEDOWNLOAD.txt", "wb") as File:
+        
+        Data = IncommingData
+        
+        
+        if MarkerPosition !=0:
+            
+            k = MarkerPosition
+            Header = Data[k:k+24]
+            
+        else:
+            Header = Data[0:24]
+            k =0
+        
+        while 1:
+
+            if Header[0:8] == '01000000':
+                
+                #then it is EOF
+                Number = int(Header[8:24],2)
+                 
+                print(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                
+            if Header[0:8] == '00000000':
+                
+                #There are no EOR/EOF/Errors/Markers
+                Number = int(Header[8:24],2)
+                print(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                
+            if Header[0:8] == '10000000':
+                
+                Number = int(Header[8:24],2)
+                #Suspected errors
+            
+            if Header[0:8] == '00100000':
+                
+                Number = int(Header[8:24],2)
+                #THere is an EOR
+                
+            if Header[0:8]== '00010000':
+                
+                #there are markers
+                MarkerPosition = k + Number*8 + 24
+                Number = int(Header[8:24],2)
+                 
+                print(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
+                
+            Header = Data[k + Number*8 + 8 : k + Number*8 + 16] 
+            k += Number*8 + 24
+                
+            if k == len(Data):
+                File.close()
+                break
+    
+    return MarkerPosition
+####################################################
+####################################################
+
+
+##################THis works 100%###################
+def getHelp(Message):
+    
+    #HELP<sp>ARGUMENT\r\n orHELP\r\n
+    Message = Message +'\r\n'
+    ControlSocket.send(Message.encode("UTF-8"))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+    Reply = ControlSocket.recv(4096).decode("UTF-8")
+    print('Control connection reply: \n' + str(Reply))
+        
+    return
+####################################################
+
+
 
 Login(port,Host)
 
@@ -530,21 +747,25 @@ while 1:
     Message = raw_input("Message from client: ")
     
     if Message == 'RETR':
-      
-          #ASCII_TypeFileTransferFromServer(Message)
-          IMAGE_TypeFileTransferFromServer(Message)
+        
+          filename = 'lol.txt'
+          Mode('MODE','B')
+          #EDCBIC_TypeFileTransferFromServer(Message,filename)
+          ASCII_TypeFileTransferFromServer(Message,filename)
+          #IMAGE_TypeFileTransferFromServer(Message,filename)
           continue
           
     if Message == 'STOR':
         
-        #EDCBIC_TypeFileTransferToServer(port,Host)
-        #ASCII_TypeFileTransferToServer(Message)
-        Image_TypeFileTransferToServer(Message)
+        filename = 'lol.txt'
+        #EDCBIC_TypeFileTransferToServer(Message,filename)
+        ASCII_TypeFileTransferToServer(Message,filename)
+        #Image_TypeFileTransferToServer(Message,filename)
         continue
         
     if Message == 'PORT':
         
-        Newport = ChangePort('178.21.2.0',7000)
+        Newport = ChangePort('127.0.0.1',7000,Host)
         ControlSocket.send(Newport.encode("UTF-8"))
         continue
     
@@ -563,9 +784,13 @@ while 1:
         List(Message,port,Host)
         continue
     
+    if Message[0:4] == 'HELP':
+        getHelp(Message)
+        continue
+    
     if Message == 'QUIT':
         break
-        
+    
     else:
         
         ReceivedData = ControlSocket.recv(4096).decode("UTF-8")
