@@ -1,0 +1,6 @@
+Performing this action results in the
+Silver Server replying '200 OK'
+
+NOOP is defined as 'No Operation'
+
+Command Sequence = NOOP<CRLF>

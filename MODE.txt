@@ -1,0 +1,14 @@
+The Silver Server accepts the following Modes:
+
+BLock Mode (by choice):
+	Denoted as:B 
+	Command sequence = MODE<space>B<CRLF>
+
+Stream mode (by default):
+	Denoted as:S
+	Command sequence = MODE<space>S<CRLF>
+
+Compression Mode(by choice):
+	Denoted as:C
+	Command sequence = MODE<space>C<CRLF>
+

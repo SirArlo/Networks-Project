@@ -1,0 +1,5 @@
+Performing the operation results in
+the Silver Server returning a list
+of the files in the specified directory
+
+Command Sequence = LIST<space>filepath<CRLF>
