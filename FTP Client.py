@@ -6,8 +6,6 @@ Created on Thu Feb 22 17:03:26 2018
 """
 import socket
 import time
-import os
-
 
 port = 5000
 #Host = '127.0.0.1'#'speedtest.tele2.net'#'ftp.mirror.ac.za'  #'66.220.9.50'##'127.0.0.1' #''#'ftp://mirror.ac.za/'
@@ -36,8 +34,8 @@ def Login(port,Host):
         
         #Username = 'USER dlpuser@dlptest.com'
         #Username = 'anonymous'
-        #Username = 'USER Arlo'
-        Username = raw_input('Enter user name: ')
+        Username = 'USER ArloE'
+        #Username = raw_input('Enter user name: ')
         #Username = 'USER ' + Username + '\r\n'
         Message,_ = formatCommands(Username)
 
@@ -52,10 +50,10 @@ def Login(port,Host):
     ReplyCode =''
     while 1:
         
-        #Password = 'PASS password'
+        Password = 'PASS 1'
         #Password = 'PASS eiTqR7EMZD5zy7M'
         #Password = raw_input('PASS ')
-        Password = raw_input('Enter Password: ')
+        #Password = raw_input('Enter Password: ')
         Message,_ = formatCommands(Password)
 
         ControlSocket.send(Message.encode('UTF-8'))

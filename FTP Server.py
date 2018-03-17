@@ -56,15 +56,17 @@ def Login(port,Host):
     
         if ReceivedPassword == RealPassword:
         
-            connection.send('230 User logged in, current working directory is /' + str(ReceivedUserName))
+            connection.send('230 User logged in, current working directory is /')
             break
     
         else:
             connection.send('404 Password inccorect')
             ReceivedPassword = connection.recv(4096).decode("UTF-8")
             ReceivedPassword = formatCommands(ReceivedPassword)
+            
+    os.chdir((str(ServerFileDirectory) +'\\'+ str(ReceivedUserName)))
 
-    return
+    return os.getcwd()
 
 ###########################################################
 ######################This works 100%####################
@@ -148,7 +150,120 @@ def SOS(Command):
 
     return
 
+###########################################################
+######################This works 100%####################
+    
+def makeDirectory(Command):
+    
+    Path = formatCommands(Command)
+    FullPath = str(os.getcwd()) + '\\' + str(Path)
+    
+    if not os.path.exists(FullPath):
+        
+        os.makedirs(FullPath)
+        WorkTree = str(os.getcwd())
+        WorkTree = WorkTree.replace(str(UsersDir),'')
+        print(WorkTree)
+        WorkTree = WorkTree.replace('\\','/')
+        print(WorkTree)
+        
+        ReplyCode = ('227 ' + WorkTree + Path + ' has been created')
+        connection.send(ReplyCode.encode('UTF-8'))
+        
+    else:
+        
+        ReplyCode = ('550 Requested action not taken, ' + str(Path) + ' already exists')
+        connection.send(ReplyCode.encode('UTF-8'))
 
+    return 
+
+###########################################################
+######################This works 100%####################
+    
+def changeWorkingDir(Command):
+    
+    Path = formatCommands(Command)
+    RealPath = Path.replace('/','\\')
+    
+    try:
+        if Path == '/':
+            
+            os.chdir(UsersDir)
+            ReplyCode = ('200 Working directory changed to ' + '/' )
+            connection.send(ReplyCode.encode('UTF-8'))
+
+        else:
+            
+            os.chdir(str(os.getcwd()) + str(RealPath))
+            WorkTree = str(os.getcwd())
+            WorkTree = WorkTree.replace(str(UsersDir),'')
+            WorkTree = WorkTree.replace('\\','/')
+            ReplyCode = ('200 Working directory changed to ' + WorkTree )
+            connection.send(ReplyCode.encode('UTF-8'))
+        
+    except OSError:
+        
+        ReplyCode = '431 No such directory'
+        connection.send(ReplyCode.encode('UTF-8'))
+
+
+    return 
+
+###########################################################
+######################This works 100%####################
+
+def removeDirecory(Command):
+    
+    Path = formatCommands(Command)
+    FullPath = ( str(os.getcwd()) + '\\'+ str(Path))
+    print('inside the RMD')
+    print(FullPath)
+    
+    try:
+        os.rmdir(FullPath)
+        ReplyCode = ('250 Requested file action okay' + str(Path) + ' has been removed')
+        connection.send(ReplyCode.encode('UTF-8'))
+    
+    except OSError:
+        
+        ReplyCode = ('550 Requested action not taken, ' + str(Path) + ' is either not empty or is your current working directory')
+        connection.send(ReplyCode.encode('UTF-8'))
+        
+    return
+
+###########################################################
+######################This works 100%####################
+    
+def changeToParentDir():
+    
+    os.chdir(UsersDir)
+    print(os.getcwd())
+    
+    ReplyCode = ('200 Working directory changed to ' + '/' )
+    connection.send(ReplyCode.encode('UTF-8'))
+    
+    return 
+
+###########################################################
+######################This works 100%####################
+    
+def deleteFile(Command):
+    
+    FileName = formatCommands(Command)
+    
+    try:
+        
+        os.remove(FileName)
+        ReplyCode = ('250 Requested file action okay , ' + str(FileName) + ' has been deleted.')
+        connection.send(ReplyCode.encode('UTF-8'))
+        
+    except OSError:
+        
+        ReplyCode = ('450 Requested file action not taken, ' + str(FileName) + ' is unavailable or is a path and not a file')
+        connection.send(ReplyCode.encode('UTF-8'))
+    
+    
+    return
 
 ###################################################
 ##############NEEDS REWRITING######################
@@ -532,19 +647,6 @@ def EDCBIC_TypeFileTransferFromClient(port,Host):
     return
 
 
-
-#def makeDirectory(Message):
-#    
-#    Message,Pathname = formatCommands(Message)
-#    
-#    ScriptDirectory = os.path.dirname(os.path.realpath(__file__))
-#    Pathname = ScriptDirectory + Username
-#    os.mkdir(Pathname)
-#    
-#    
-#    
-#    return
-
    
 ControlSocket =socket.socket()
 ControlSocket.bind((Host, port))
@@ -555,7 +657,8 @@ Initiation = '220 Service established, Welcome to the Silver Server!'
 print(Initiation)
 connection.send(Initiation.encode("UTF-8"))
 
-Login(port,Host)
+UsersDir = Login(port,Host)
+print('after login ' + str(UsersDir))
 
 print ("Connection request from address: " + str(address))
 
@@ -608,6 +711,26 @@ while 1:
        
        SOS(Command)
        continue
+   
+    if Command[0:3] == 'MKD':
+        makeDirectory(Command)
+        continue
+    
+    if Command[0:3] == 'RMD':
+        removeDirecory(Command)
+        continue
+    
+    if Command[0:3] == 'CWD':
+        changeWorkingDir(Command)
+        continue
+    
+    if Command[0:4] == 'CDUP':
+        changeToParentDir()
+        continue
+    
+    if Command[0:4] == 'DELE':
+        deleteFile(Command)
+        continue
             
     else:
       print(Command) 
