@@ -14,6 +14,11 @@ import random
 port = 5000
 Host = '127.0.0.1'
 
+#Type List In order ASCII, EDCBIC, IMAGE
+TypeList = [True, False, False]
+
+#Mode list in order of Stream, Compressed, Block
+ModeList = [True, False, False]
 
 ##################This works 100%#################### 
 def Login(port,Host):
@@ -265,6 +270,159 @@ def deleteFile(Command):
     
     return
 
+###########################################################
+######################This works 100%####################
+def changeType(Command,TypeList):
+    
+    ParameterOne = formatCommands(Command)
+
+    if ParameterOne == 'A':
+        
+        ReplyCode = ('200 Command okay, the type has been set to ASCII for the session')
+        
+        for i in xrange(0, len(TypeList)):
+            TypeList[i] = False
+            
+        TypeList[0] = True
+        
+    elif ParameterOne == 'E':
+        
+        ReplyCode = ('200 Command okay, the type has been set to EDCBIC for the session')
+        
+        for i in xrange(0, len(TypeList)):
+            TypeList[i] = False
+            
+        TypeList[1] = True
+         
+    elif ParameterOne == 'I':
+        
+        ReplyCode = ('200 Command okay, the type has been set to Image/Binary for the session')
+        
+        for i in xrange(0, len(TypeList)):
+            TypeList[i] = False
+        
+        TypeList[2] = True
+        
+    else:
+        ReplyCode = ('500 TYPE ' + ParameterOne + ' is unrecognized or not supported.')
+        
+  
+    connection.send(ReplyCode.encode('UTF-8'))
+
+
+    return
+
+###########################################################
+######################This works 100%####################
+def changeMode(Command,ModeList):
+    
+    ParameterOne = formatCommands(Command)
+   
+    if ParameterOne == 'S':
+        
+        ReplyCode = ('200 Command okay, the mode has been set to Stream for the session')
+        
+        for i in xrange(0, len(ModeList)):
+            ModeList[i] = False
+            
+        ModeList[0] = True
+
+    elif ParameterOne == 'C':
+        
+        ReplyCode = ('200 Command okay, the mode has been set to Compression for the session')
+        
+        for i in xrange(0, len(ModeList)):
+            ModeList[i] = False
+            
+        ModeList[1] = True
+    
+    elif ParameterOne == 'B':
+        
+        ReplyCode = ('200 Command okay, the mode has been set to Block for the session')
+        
+        for i in xrange(0, len(ModeList)):
+            ModeList[i] = False
+        
+        ModeList[2] = True
+        
+    else:
+        
+        ReplyCode = ('500 MODE ' + ParameterOne + ' is unrecognized or not supported.')
+        
+        
+    connection.send(ReplyCode.encode('UTF-8'))
+
+    return
+
+##########################################################
+######################This works 100%####################
+    
+def NoOperation(Command):
+    
+    Response = "200 OK"
+    connection.send(Response.encode("UTF-8")) 
+    print('Performed no operation -_- ...')
+    
+    return
+
+##########################################################
+######################This works 100%####################
+def getDirectoryList(Command,UsersDir):
+    
+
+    Pathname = formatCommands(Command)
+
+    if Pathname == '/':
+        Pathname = ''
+
+    FileList = '\n'  
+    
+    ListOfDirFiles = os.listdir(str(UsersDir) + str(Pathname))
+
+    if 'credentials.txt' in ListOfDirFiles:
+        ListOfDirFiles.remove('credentials.txt')  
+        
+    sorted(ListOfDirFiles)
+    for i in ListOfDirFiles:
+        FileList = FileList + str(i) +'\n'   
+        
+    ReplyCode = '150 opening data connection...' 
+    connection.send(ReplyCode.encode('UTF-8'))
+      
+    DataConnection.send(FileList.encode('UTF-8'))
+    ReplyCode = '226 Closing data connection'
+    
+    connection.send(ReplyCode.encode('UTF-8'))
+    DataConnection.close()
+    
+    return
+
+##########################################################
+######################This works 100%####################
+def passiveMode(Host):
+    
+
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.bind(('0.0.0.0', 0))
+    FileTransferSocket.listen(5)
+    DataPort = FileTransferSocket.getsockname()[1]
+        
+
+    p2 = DataPort % 256
+    p1 = (DataPort -p2)/256
+
+    Host = Host.replace('.',',')
+    
+    Message = ( '227 Entering Passive Mode (' + Host +',' + str(p1) + ',' +str(p2) + ')' )
+    connection.send(Message.encode("UTF-8"))
+
+    print('New host Data Connection: \n' + str(Host))
+    print('New port Data Connection: \n '+ str(DataPort))
+    
+    DataConnection, DataAddress = FileTransferSocket.accept()
+    print('exiting the passive function')
+    return DataConnection, DataAddress
+
 ###################################################
 ##############NEEDS REWRITING######################
 def recv_timeout(the_socket,timeout=2):
@@ -301,37 +459,11 @@ def recv_timeout(the_socket,timeout=2):
      
     #join all parts to make final string
     return ''.join(total_data)
-###################################################
-###################################################
-    
-def getDirectoryList(Command):
-    
-    #"C:\Users\Arlo\Documents\Repos\Networks project"
-    Pathname = formatCommands(Command)
-    
-    FileList = '\n'  
-    ListOfDirFiles = os.listdir(Pathname)
-    
-    if 'credentials.txt' in ListOfDirFiles:
-        ListOfDirFiles = ListOfDirFiles.remove('credentials.txt')  
-    
-    for i in ListOfDirFiles:
-        FileList = FileList + str(i) +'\n'   
-        
-    DataHost,Dataport = passiveMode(address,Host)
-    ReplyCode = '150 opening data connection...'
-    
-    connection.send(ReplyCode.encode('UTF-8'))
-    DataConnection, DataAddress = startDataConnection(DataHost,Dataport)
-    
-    DataConnection.send(FileList.encode('UTF-8'))
-    ReplyCode = '226 Closing data connection'
-    
-    connection.send(ReplyCode.encode('UTF-8'))
-    DataConnection.close()
-    
-    return
 
+
+#################Needs Testing#####################
+###################################################
+###################################################
 
 def ChangePort(Newport):
     
@@ -348,16 +480,301 @@ def ChangePort(Newport):
     
     return Host, Port
 
-def NoOperation(Command):
+#################Needs Testing#####################
+###################################################
+###################################################
+
+def RestartFileTransfer(MarkerPosition):
     
-    Response = "200 OK"
-    connection.send(Response.encode("UTF-8")) 
-    print('Performed no operation -_- ...')
+    BlockModeReceive(MarkerPosition)
+
+    return
+
+#################Needs Testing#####################
+###################################################
+###################################################
+def retrive(Command):
+    
+    FileName = formatCommands(Command)
+    
+    StartTimer = time.time()
+    
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+   # FileTransferSocket.connect((DataHost,DataPort))
+
+    with open(FileName, 'wb') as File:
+        
+        if ModeList[0] == True:
+            print(str(FileName) + ' has been opened...')
+            
+            IncommingData = recv_timeout(FileTransferSocket)
+            
+            if TypeList[0] == True:
+                IncommingData.decode('UTF-8')
+
+            if TypeList[1] == True:
+                IncommingData.decode('cp500')
+                
+        if ModeList[1]== True:
+            
+            sendCompressionMode(File,TypeList,FileTransferSocket)
+        
+        if ModeList[2] == True:
+            
+            sendBlockMode(File,TypeList,FileTransferSocket,MarkerPosition)
+           
+        File.write(IncommingData)
+        StopTimer = time.time()
+        ElapsedTime = StopTimer - StartTimer
+        print (str(FileName) + ' has finished downloading\n')
+        print(str(len(IncommingData)/1000) +' kB of data was downloaded in ' +str(ElapsedTime) +' seconds')
+        File.close()
+        FileTransferSocket.close()
     
     return
 
+#################Needs Testing#####################
+###################################################
+###################################################
 
-def CompressionMode():
+def Store(Command,TypeList,MarkerPosition=0):
+    
+    DataHost,DataPort = passiveMode()
+    
+    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    FileTransferSocket.connect((DataHost,DataPort))
+    
+    FileName = formatCommands(Command)
+    
+
+    StartTimer = time.time()
+
+    with open(FileName,'rb') as File:
+    
+        print(str(FileName) + ' has been opened...')
+        
+        if ModeList[0] == True:
+            OutgoingData = File.read(8192)
+             
+            while (OutgoingData):
+                
+                if TypeList[0] == True:
+                    OutgoingData.encode('UTF-8')
+    
+                if TypeList[1] == True:
+                    OutgoingData.encode('cp500')
+                
+                FileTransferSocket.send(OutgoingData)
+                OutgoingData = File.read(8192)
+                
+        if ModeList[1]== True:
+            
+            sendCompressionMode(File,TypeList,FileTransferSocket)
+        
+        if ModeList[2] == True:
+            
+            sendBlockMode(File,TypeList,FileTransferSocket,MarkerPosition)
+            
+            
+        StopTimer = time.time()
+        ElapsedTime = StopTimer - StartTimer
+        print(str(FileName) + ' has been uploaded to the server in'+ str(ElapsedTime) +' seconds')
+        FileTransferSocket.close()
+        File.close()
+        
+        Reply = ControlSocket.recv(4096).decode('UTF-8')
+        print('Control connection reply: \n' + str(Reply))
+    
+       
+        
+    return
+
+#################Needs Testing#####################
+###################################################
+###################################################
+def sendCompressionMode(File,TypeList,FileTransferSocket):
+           
+    File = File.read()
+    DataToCompress = ''
+    l = len(File)
+    Iter = 1
+    i = 1
+    Map = []
+    
+    while i < l:
+        
+        if File[i] == File[i - 1]:
+            
+            Iter += 1
+            
+        else:
+            
+            DataToCompress = DataToCompress + File[i - 1] 
+            Map.append(Iter)
+            Iter = 1
+            
+        i += 1
+        
+    DataToCompress = DataToCompress + File[i - 1]
+    Map.append(Iter)
+
+
+    counter = 0
+    i = 0
+    while i <len(DataToCompress):
+        
+        if Map[i] == 1:
+            
+            counter += 1
+    
+        else:
+            print( 'counter: ' + str(counter))
+            if counter > 0 :
+                       
+                start = i -counter
+                while counter >= 127:
+
+                 print ('Blocktosend')
+                 Block  = ('01111111' + string2bits(DataToCompress[start:start + 127],8))
+                 #print('01111111' + string2bits(DataToCompress[start:start + 127],8))
+                 
+                 if TypeList[0] == True:
+                     Block.encode('UTF-8')
+
+                 if TypeList[1] == True:
+                    Block.encode('cp500')
+                    
+                 FileTransferSocket.send(Block)
+                 
+                 start = start + 127
+                 counter = counter - 127
+                 
+                if counter > 0 and counter < 127:
+
+                    print ('Blocktosend') 
+                    Block = ('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8))
+                    #print('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8)) 
+                    
+                    if TypeList[0] == True:
+                        Block.encode('UTF-8')
+
+                    if TypeList[1] == True:
+                        Block.encode('cp500')
+                    
+                    FileTransferSocket.send(Block)
+                                       
+            if Map[i] > 1 and DataToCompress[i] != ' ':
+ 
+                NumberBlocks = Map[i] 
+                
+                while NumberBlocks >= 63:
+                    
+                    print ('Compressed')
+                    Block = ('10111111' + str(string2bits(DataToCompress[i],8)))
+                    #print('10111111' + str(string2bits(DataToCompress[i],8)))
+                    
+                    if TypeList[0] == True:
+                        Block.encode('UTF-8')
+
+                    if TypeList[1] == True:
+                        Block.encode('cp500')
+                    
+                    FileTransferSocket.send(Block)
+                    NumberBlocks = NumberBlocks - 63
+                    
+                if NumberBlocks > 0 and NumberBlocks < 63:
+                    
+                    print ('Compressed')
+                    Block = ('10' + Number2bits(NumberBlocks,6) + str(string2bits(DataToCompress[i],8)))
+                    #print('10' + Number2bits(NumberBlocks,6) + str(string2bits(DataToCompress[i],8)))
+                    
+                    if TypeList[0] == True:
+                        Block.encode('UTF-8')
+
+                    if TypeList[1] == True:
+                        Block.encode('cp500')
+                    
+                    FileTransferSocket.send(Block)
+                    
+            if Map[i] > 1 and DataToCompress[i] == ' ':
+               
+                NumberBlocks = Map[i] 
+                
+                while NumberBlocks >= 63:
+                    
+                    print ('Compressed space')
+                    Block = ('11' + Number2bits(NumberBlocks,6))
+                    #print('11' + Number2bits(NumberBlocks,6))
+                    
+                    if TypeList[0] == True:
+                        Block.encode('UTF-8')
+
+                    if TypeList[1] == True:
+                        Block.encode('cp500')
+                    
+                    FileTransferSocket.send(Block)
+                    NumberBlocks = NumberBlocks - 63
+                    
+                if NumberBlocks > 0 and NumberBlocks < 63:
+                    
+                    print ('Compressed space')
+                    Block = ('11' + Number2bits(NumberBlocks,6))
+                    #print('11' + Number2bits(NumberBlocks,6))
+                    
+                    if TypeList[0] == True:
+                        Block.encode('UTF-8')
+
+                    if TypeList[1] == True:
+                        Block.encode('cp500')
+                    
+                    FileTransferSocket.send(Block)
+
+            counter = 0  
+            
+        i +=1
+        
+ ##############end of while loop##################
+ 
+    print( 'counter: ' + str(counter))
+    if counter > 0 :
+           
+        start = i -counter
+        print('Start  ' + str(start))
+        while counter >= 127:
+
+         print ('Blocktosend')
+         Block = ('01111111' + string2bits(DataToCompress[start:start + 127],8)) 
+         #print('01111111' + string2bits(DataToCompress[start:start + 127],8))
+         if TypeList[0] == True:
+             Block.encode('UTF-8')
+
+         if TypeList[1] == True:
+            Block.encode('cp500')
+                    
+         FileTransferSocket.send(Block)
+         
+         start = start + 127
+         counter = counter - 127
+         
+        if counter > 0 and counter < 127:
+
+            print ('Blocktosend') 
+            Block = ('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8))
+            #print('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8)) 
+            if TypeList[0] == True:
+                Block.encode('UTF-8')
+
+            if TypeList[1] == True:
+                Block.encode('cp500')
+                    
+            FileTransferSocket.send(Block)
+            
+    return
+#################Needs Testing#####################
+###################################################
+###################################################
+
+def reciveCompressionMode():
     
     
     with open('BINARY.txt', 'rb') as File:
@@ -409,7 +826,83 @@ def CompressionMode():
                 break
             
     return
+#################Needs Testing#####################
+###################################################
+###################################################
 
+def sendBlockMode(File,TypeList,FileTransferSocket,MarkerPosition =0): 
+    # Still needs work for the EOR/ERRORs/MArkers
+    #128 is EOR ----------> No point in this 
+    #64 is EOF ----------> done
+    #32 is errors -------> no point in this
+    #16 marker ---------->done
+    
+    File = File.read()
+    NumberOfBytes = len(File)
+    Marker = 'rrrrrr'
+    
+    if MarkerPosition != 0: 
+        
+        start = MarkerPosition
+        
+    else:
+        
+        start = 0
+
+
+    if NumberOfBytes > 65536:
+        end = start + 65536
+    else:
+        end = NumberOfBytes
+
+    while NumberOfBytes > 65535:
+        
+        end = start + 65536
+        print('Block to send')
+        #print('000000001111111111111111' + string2bits(str(File[start:end])))
+        Block = ('000000001111111111111111' + string2bits(str(File[start:end])))
+        
+        if TypeList[0] == True:
+            Block.encode('UTF-8')
+
+        if TypeList[1] == True:
+            Block.encode('cp500')
+                    
+        FileTransferSocket.send(Block)
+
+        Block = ('000100000000000000000110' + string2bits(Marker))
+        #print('000100000000000000000110' + string2bits(Marker))
+        
+        if TypeList[0] == True:
+            Block.encode('UTF-8')
+
+        if TypeList[1] == True:
+            Block.encode('cp500')
+                    
+        FileTransferSocket.send(Block)
+        
+        NumberOfBytes - 65535
+        start += 65536
+        
+    if NumberOfBytes > 0 and NumberOfBytes < 65535:
+        
+        #this must contain the end of file byte
+        Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:end+1]))
+        #print('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:end+1]))
+        
+        if TypeList[0] == True:
+            Block.encode('UTF-8')
+
+        if TypeList[1] == True:
+            Block.encode('cp500')
+                    
+        FileTransferSocket.send(Block)
+    
+    return
+
+#################Needs Testing#####################
+###################################################
+###################################################
 
 def BlockModeReceive(MarkerPosition =0):
     
@@ -473,192 +966,18 @@ def BlockModeReceive(MarkerPosition =0):
     
     return MarkerPosition
 
-def RestartFileTransfer(MarkerPosition):
-    
-    
-    BlockModeReceive(MarkerPosition)
-    
-    return
 
-##################This Wokrs 98%#################
-    
-def passiveMode(address,Host):
-    
-    #this might need port checking
-
-    DataPort = random.sample(range(1024, 5000), 1)
-    DataPort = int(DataPort[0])
-#    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#    result = sock.connect_ex((address, DataPort))
-#    sock.close()
-#    
-#    if result:
-#        print ('Port: ' + str(DataPort) + ' is open' )
-
-
-    print(DataPort)
-    p2 = DataPort % 256
-    p1 = (DataPort -p2)/256
-    
-    print(DataPort)
-    print(p1)
-    print(p2)
-    Host = Host.replace('.',',')
-    Message = '227 Entering Passive Mode (' + Host +',' + str(p1) + ',' +str(p2) + ')'
-    print(Message)
-    connection.send(Message.encode("UTF-8"))
-
-    print('New host Data Connection: \n' + str(Host))
-    print('New port Data Connection: \n '+ str(DataPort))
-    
-    return Host, DataPort
-
-def startDataConnection(Host,port):
-    
-    FileTransferSocket =socket.socket()
-    FileTransferSocket.bind((Host, port))
-    FileTransferSocket.listen(5)  
-    connection, address = FileTransferSocket.accept() 
-    
-    return connection, address
-
-def ASCII_TypeFileTransferToClient(Message):
-    
-    
-    File = open('cat.jpg','rb')
-    Reading = File.read(8192)
-    
-    while (Reading):
-             
-        FileTransferConn.send(Reading.encode('UTF-8'))
-        Reading = File.read(8192)
-             
-    print("The file has finnished sending to client")
-    
-    File.close()
-    FileTransferSocket.close()
-    
-    return
-
-def ASCII_TypeFileTransferFromClient(port,Host):
-    
-    Fileport = port-1
-    
-    FileTransferSocket = socket.socket()
-    FileTransferSocket.connect((Host,Fileport))
-
-    with open('ServerCopy.txt', 'wb') as File:
-        
-            print('File opened')
-            IncommingData = recv_timeout(FileTransferSocket)
-            IncommingData.decode('UTF-8')
-            File.write(IncommingData)
-            print ("File transfer complete")
-            File.close()
-            FileTransferSocket.close()
-
-    return
-
-
-def IMAGE_TypeFileTransferFromClient(port,Host):
-    
-    Fileport = port-1
-    
-    FileTransferSocket = socket.socket()
-    FileTransferSocket.connect((Host,Fileport))
-
-    with open('BINARY.txt', 'wb') as File:
-        
-            print('File opened')
-            IncommingData = recv_timeout(FileTransferSocket)
-            File.write(IncommingData)
-            print ("File transfer complete")
-            File.close()
-            FileTransferSocket.close()
-
-    return
-
-def IMAGE_TypeFileTransferToClient(port,Host):
-    
-    FilePort = port-1
-    
-    FileTransferSocket =socket.socket()
-    FileTransferSocket.bind((Host, FilePort)) 
-    FileTransferSocket.listen(5)  
-    FileTransferConn, FileAddress = FileTransferSocket.accept()
-    
-    File = open('TEST.txt','rb')
-    Reading = File.read(1)
-
-    while (Reading):
-             
-        FileTransferConn.send(Reading)
-        Reading = File.read(1)
-        
-    print("The file has finnished sending to Server")
-    
-    File.close()
-    FileTransferSocket.close()
-
-    return
-
-def EDCBIC_TypeFileTransferToClient(port,Host):
-    
-    FilePort = port-1
-    
-    FileTransferSocket =socket.socket()
-    FileTransferSocket.bind((Host, FilePort)) 
-    FileTransferSocket.listen(5)  
-    FileTransferConn, FileAddress = FileTransferSocket.accept()
-    
-    File = open('cat.jpg', 'rb')
-    Reading = File.read(8192)
-    Reading.encode('cp500')
-    while (Reading):
-             
-        FileTransferConn.send(Reading)
-        Reading = File.read(8192)
-        Reading.encode('cp500')
-             
-    print("The file has finnished sending to client")
-    
-    File.close()
-    FileTransferSocket.close()
-    
-    return
-
-def EDCBIC_TypeFileTransferFromClient(port,Host):
-    
-    Fileport = port-1
-    
-    FileTransferSocket = socket.socket()
-    FileTransferSocket.connect((Host,Fileport))
-
-    with open('IBMSHIT.txt', 'wb') as File:
-        
-            print('File opened')
-            IncommingData = recv_timeout(FileTransferSocket)
-            IncommingData.decode('cp500')
-            File.write(IncommingData)
-            print ("File transfer complete")
-            File.close()
-            FileTransferSocket.close()
-
-    return
-
-
-   
 ControlSocket =socket.socket()
 ControlSocket.bind((Host, port))
 ControlSocket.listen(5)  
 connection, address = ControlSocket.accept() 
 
-Initiation = '220 Service established, Welcome to the Silver Server!'
-print(Initiation)
+
+Initiation = ('220 Service established, Welcome to the Silver Server!')
 connection.send(Initiation.encode("UTF-8"))
 
 UsersDir = Login(port,Host)
-print('after login ' + str(UsersDir))
+
 
 print ("Connection request from address: " + str(address))
 
@@ -671,18 +990,18 @@ while 1:
         break;
         
     if Command[0:4] == 'LIST':
-       getDirectoryList(Command)
+        
+       print('entering lISt')
+       getDirectoryList(Command,UsersDir)
+       print('exited list')
        continue
    
     if Command[0:4] == 'RETR':
-        
-        ASCII_TypeFileTransferToClient(port,Host)
+
         continue
     
     if Command[0:4] == 'STOR':
-        #EDCBIC_TypeFileTransferFromClient(port,Host)
-        ASCII_TypeFileTransferFromClient(Message)
-        #IMAGE_TypeFileTransferFromClient(port,Host)
+
         continue
     
     if Command[0:4] == 'PORT':
@@ -703,8 +1022,9 @@ while 1:
         continue
     
     if Command[0:4] == 'PASV':
-      print('in the PASV function')
-      Host, port = passiveMode(address,Host)
+        
+      DataConnection, DataAddress = passiveMode(Host)
+      print('return from pasv function')
       continue
   
     if Command[0:4] == 'HELP':
@@ -731,10 +1051,20 @@ while 1:
     if Command[0:4] == 'DELE':
         deleteFile(Command)
         continue
+    
+    if Command[0:4] =='TYPE':
+    
+        changeType(Command,TypeList)
+        continue
+    
+    if Command[0:4] == 'MODE':
+        
+        changeMode(Command,ModeList)
+        continue
             
     else:
       print(Command) 
-      response = (Command + " is not a valid Command")
+      response = ('500 Syntax error, %s unrecognized',Command)
       connection.send(response.encode("UTF-8")) 
     
     

@@ -491,6 +491,7 @@ def ChangePort(host,port,Host):
     print('Control connection reply: \n' + str(Reply))
     
     return PortChange
+
 ###################################################
 ####################################################
 ################NEEDS TESTING######################
@@ -671,6 +672,62 @@ def sendCompressionMode(File,TypeList,FileTransferSocket):
                 Block.encode('cp500')
                     
             FileTransferSocket.send(Block)
+            
+    return
+
+###################################################
+####################################################
+################NEEDS TESTING######################
+def receiveCompressionMode():
+    
+    
+    with open('BINARY.txt', 'rb') as File:
+        
+        File =File.read()
+        Binary = File
+        LengthOfDAta = len(Binary)
+        Header = Binary[0:8]
+        Number = 0
+        k =0
+        
+        while 1:
+            
+            if Header[0] == '1' and Header[1] == '0':
+
+             Number = int(Header[2:],2)
+
+             i =0
+
+             while i < Number:
+                 
+                 print(chr(int(Binary[k+9:k+16],2)))
+                 
+                 i += 1
+             Number = 1
+             
+            if Header[0] == '0':
+             
+             Number = int(Header[1:],2)
+             
+             print(''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8)))
+              
+            if Header[0] == '1' and Header[1] == '1':
+                
+                Number = int(Header[2:],2)
+                print(k)
+                i =0
+                while i<Number:
+
+                    print(chr(int(Binary[k+9:k+16],2)))
+                    
+                    i += 1
+                Number = 0
+                
+            Header = Binary[k+Number*8 +8 : k+Number*8 + 16] 
+            k += Number*8 + 8
+            
+            if k == LengthOfDAta:
+                break
             
     return
 ####################################################
@@ -903,6 +960,7 @@ while 1:
     if Message[0:4] == 'LIST':
 
         getList(Message)
+        
         continue
     
     if Message[0:4] == 'PASV':
