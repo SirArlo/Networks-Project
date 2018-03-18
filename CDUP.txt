@@ -1,0 +1,4 @@
+Performing this operation changes the current 
+working directory to the parent/root directory.
+
+Command Sequence = CDUP<CRLF>

@@ -1,0 +1,4 @@
+Performing this operation Changes the current 
+working directory of the server 
+
+Command Sequence = CWD<space>Pathname<CRLF>

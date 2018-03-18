@@ -1,0 +1,4 @@
+Performing this operation deletes the file 
+specified in the pathname 
+
+Command Sequence = DELE<space>Pathname<CRLF>

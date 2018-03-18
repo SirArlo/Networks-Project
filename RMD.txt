@@ -1,0 +1,4 @@
+Performing this operation removes the directory 
+specified in the pathname
+
+Command Sequence = RMD<space>Pathname<CRLF>

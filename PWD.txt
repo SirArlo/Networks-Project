@@ -1,0 +1,4 @@
+Performing this operation prints the current 
+working directory of the server 
+
+Command Sequence = PWD<CRLF>

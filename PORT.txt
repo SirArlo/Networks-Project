@@ -1,0 +1,9 @@
+Performing this operation allows the client 
+to specify a port and IP address for the 
+data connection to be established for the 
+resulting file transfer process.
+
+This requires both a port and IP address to be
+specified.
+
+Command Sequence = PORT<space>IP<space>Port<CRLF>

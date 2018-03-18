@@ -3,3 +3,7 @@ The Silver Server supports the folowing commands:
 QUIT	NOOP	PASV 	CDUP	MKD	CWD
 USER 	PASS 	RETR 	STOR  	RMD 	HELP 
 LIST 	TYPE 	MODE 	DELE	PORT
+
+To delve deeper into each command you can type:
+
+HELP<space>CommandName

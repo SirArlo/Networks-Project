@@ -1,0 +1,10 @@
+Performing this operation allows for the client
+to send a file to the server which will be 
+stored in the current working directory of
+the server. 
+
+STOR can be used in conjunction with the 
+supported TYPES and MODES outlined in their
+respective help files.
+
+Command Sequence = STOR<space>FileName<CRLF>

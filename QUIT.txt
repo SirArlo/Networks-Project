@@ -1,4 +1,4 @@
-Peferming this operation reults in the termination 
+Peforming this operation reults in the termination 
 of the client/server connnection.
 
 Command Sequence = QUIT<CRLF>

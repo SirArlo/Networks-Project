@@ -1,0 +1,6 @@
+Performing this operation allows the client to 
+make a new folder in the current working 
+directory of the server.
+ 
+
+Command Sequence = MKD<space>FolderName<CRLF>

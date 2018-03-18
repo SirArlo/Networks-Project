@@ -1,0 +1,11 @@
+Performing this operation allows the client to 
+initate a passive conmnection to the server.
+
+This allows for the client to connect to the 
+port specified by the server. Using passive mode 
+allows for outbound TCP requests from the client
+and bypasses the firewall restrictions of the
+operating system.
+
+
+Command Sequence = PASV<CRLF>
