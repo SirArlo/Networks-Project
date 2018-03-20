@@ -71,15 +71,10 @@ def Login(port,Host):
     return
 
 ##################This Wokrs 100%#################
-def getList(Message):
+def getList(Message,FileTransferSocket):
     
     Message,_ = formatCommands(Message)
       
-    DataHost,Fileport = passiveMode(PortList)
-    
-    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    FileTransferSocket.connect((DataHost,Fileport))
-    
     ControlSocket.send(Message.encode('UTF-8'))
     Reply = ControlSocket.recv(4096).decode('UTF-8')
     
@@ -113,7 +108,7 @@ def NoOperation(Message):
     return
 
 ##################This Wokrs 100%#################
-def passiveMode(PortList):
+def passiveMode():
     
     Message,_ = formatCommands('PASV')
     
@@ -128,10 +123,6 @@ def passiveMode(PortList):
     DataHost = str(Reply[0]) + '.'+ str(Reply[1]) +'.'+ str(Reply[2]) +'.'+ str(Reply[3])
     DataPort = (int(Reply[4])*256) + int(Reply[5])
     
-    PortList[0] = True
-    PortList[1]  = False
-    
-
     return DataHost,DataPort
 
 
@@ -208,15 +199,10 @@ def changeType(Message,TypeList):
     return
 
 #########This works 100 % needs exceptions##################
-def Retrieve(Message,TypeList,MarkerPosition=0):
+def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     
     Message,Filename = formatCommands(Message)
      
-    DataHost,DataPort = passiveMode(PortList)    
-    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    FileTransferSocket.connect((DataHost,DataPort))
-    
-    
     ControlSocket.send(Message.encode('UTF-8'))
     Reply = ControlSocket.recv(4096).decode('UTF-8')
     print('Control connection reply: \n' + str(Reply))
@@ -246,7 +232,7 @@ def Retrieve(Message,TypeList,MarkerPosition=0):
         if ModeList[2] == True:
             
             IncommingData = recv_timeout(FileTransferSocket)
-            sendBlockMode(File,TypeList,FileTransferSocket,MarkerPosition)
+            receiveBlockMode(File,FileTransferSocket,IncommingData,0)
            
         StopTimer = time.time()
         ElapsedTime = StopTimer - StartTimer
@@ -262,12 +248,8 @@ def Retrieve(Message,TypeList,MarkerPosition=0):
     return
 
 #########This works 100 % needs exceptions##################
-def Store(Message,TypeList,MarkerPosition=0):
-    
-    DataHost,DataPort = passiveMode(PortList)
-    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    FileTransferSocket.connect((DataHost,DataPort))
-    
+def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
+     
     Message,ParameterOne = formatCommands(Message)
     
     ControlSocket.send(Message.encode('UTF-8'))
@@ -624,7 +606,7 @@ def recv_timeout(the_socket,timeout=2):
 
 ###########################################################
 #################NEEDS TESTING#####################
-def ChangePort(Message,PortList): 
+def ChangePort(Message): 
     
     
     DataHost, DataPort = (Message.replace(Message[0:5],'')).split(' ')
@@ -638,35 +620,23 @@ def ChangePort(Message,PortList):
     Reply = ControlSocket.recv(4096).decode('UTF-8')
     print(Reply)
     
-    Reply = ControlSocket.recv(4096).decode('UTF-8')
-    print(Reply)
+    DataPort = int(DataPort)
 
-    FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    FileTransferSocket.connect((DataHost,int(DataPort)))
-    print('hererere')
-    
-    Reply = FileTransferSocket.recv(4096).decode('UTF-8')
-    print('Control connection reply: \n' + str(Reply))
-    
-
-    
-    return FileTransferSocket
+    return DataHost,DataPort
    
 
 ####################################################
 ################NEEDS TESTING######################
     
-def sendBlockMode(File,FileTransferSocket,MarkerPosition =0): 
+def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
     # Still needs work for the EOR/ERRORs/MArkers
     #128 is EOR ----------> No point in this 
     #64 is EOF ----------> done
     #32 is errors -------> no point in this
     #16 marker ---------->done
-    fuck = open('cunt.txt','w')
-    print('i have started sending blocks')
+    
     File = File.read()
     NumberOfBytes = len(File)
-    print(NumberOfBytes)
     Marker = 'rrrrrr'
     
     if MarkerPosition != 0: 
@@ -677,24 +647,11 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition =0):
         
         start = 0
 
-    print('calculating the blocks')
-    
-    if NumberOfBytes > 65536:
+    while NumberOfBytes > 65536:
         
         end = start + 65536
-        
-    else:
-        
-        end = NumberOfBytes
-        
-    print('entering while loop')
-    while NumberOfBytes > 65535:
-        
-        end = start + 65535
-        Block = ('000000001111111111111111' + string2bits(str(File[start:end+1])))
-        fuck.write('000000001111111111111111' + string2bits(str(File[start:end+1])))
-        fuck.write('\n\n\n\n\n')
-        print(str(len(Block)) +'\n\n\n')
+        Block = ('000000001111111111111111' + string2bits(str(File[start:end])))
+
         if TypeList[0] == True:
             Block.encode('UTF-8')
 
@@ -704,9 +661,7 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition =0):
         FileTransferSocket.send(Block)
 
         Block = ('000100000000000000000110' + string2bits(Marker))
-        fuck.write('000100000000000000000110' + string2bits(Marker))
-        fuck.write('\n\n\n\n\n')
-        print(str(len(Block)) +'\n\n\n')
+
         if TypeList[0] == True:
             Block.encode('UTF-8')
 
@@ -715,24 +670,22 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition =0):
                     
         FileTransferSocket.send(Block)
         
-        NumberOfBytes = NumberOfBytes - 65535
-        print(NumberOfBytes)
-        start += 65535
-        print('while...')
+        NumberOfBytes = NumberOfBytes - 65536
+
+        start += 65537
+    
+    if NumberOfBytes > 0 and NumberOfBytes < 65536:
         
-    if NumberOfBytes > 0 and NumberOfBytes < 65535:
+        Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:]))
         
-        Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:end+1]))
-        fuck.write('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:end+1]))
-        print(str(len(Block)) +'\n\n\n')
         if TypeList[0] == True:
             Block.encode('UTF-8')
 
         if TypeList[1] == True:
             Block.encode('cp500')
-                    
+            
         FileTransferSocket.send(Block)
-    print('i have finished sending blocks')
+                    
     return 
 
 ####################################################
@@ -747,16 +700,19 @@ def restartBlockMode(MarkerPosition,Message):
 ####################################################
 ################NEEDS TESTING######################
 def receiveBlockMode(File,FileTransferSocket,IncommingData,MarkerPosition=0):
-    
+
     #128 is EOR ----------> No point in this 
     #64 is EOF ----------> done
     #32 is errors -------> no point in this
     #16 marker ---------->done
-    
-    IncommingData = recv_timeout(FileTransferSocket)
     Data = IncommingData
     
-    
+    if TypeList[0] == True:
+        Data.decode('UTF-8')
+
+    if TypeList[1] == True:
+        Data.decode('cp500')
+
     if MarkerPosition !=0:
         
         k = MarkerPosition
@@ -767,45 +723,30 @@ def receiveBlockMode(File,FileTransferSocket,IncommingData,MarkerPosition=0):
         k =0
     
     while 1:
-
+        
         if Header[0:8] == '01000000':
             
             #then it is EOF
-            Number = int(Header[8:24],2)
-             
-            File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
-            
+            Number = int(Header[8:25],2)       
+            File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, len(Data), 8)))
+            File.close()
+            break
+        
         if Header[0:8] == '00000000':
             
             #There are no EOR/EOF/Errors/Markers
-            Number = int(Header[8:24],2)
-            File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
-            
-        if Header[0:8] == '10000000':
-            
-            Number = int(Header[8:24],2)
-            #Suspected errors
+            Number = int(Header[8:25],2)+1
+            File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 24, 8)))
         
-        if Header[0:8] == '00100000':
-            
-            Number = int(Header[8:24],2)
-            #THere is an EOR
-            
         if Header[0:8]== '00010000':
             
             #there are markers
-            MarkerPosition = k + Number*8 + 24
-            Number = int(Header[8:24],2)
+            MarkerPosition = k 
+            Number = int(Header[8:25],2)
              
-            File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 1, 8)))
-            
-        Header = Data[k + Number*8 + 8 : k + Number*8 + 16] 
         k += Number*8 + 24
-            
-        if k == len(Data):
-            File.close()
-            break
-    
+        Header = Data[k : k + 24] 
+        
     return MarkerPosition
 
 ####################################################
@@ -854,6 +795,36 @@ def printWorkingDir(Message):
     
     return
 
+def makeDataConnection(Message):
+    
+    if PortList[0] == True:
+        DataHost,DataPort = passiveMode()
+        
+        print('The current port and host is: (' + str(DataHost)+ ' ' +str(DataPort) +' )')
+        
+        FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        try:
+            
+            FileTransferSocket.connect((DataHost,int(DataPort)))
+        
+        except socket.error, e:
+            print ("Unable to make data connection: %s" % e)
+        
+        
+        
+    if PortList[1] == True:
+                
+        DataHost,DataPort = ChangePort(Message)
+        
+        Socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        Socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        Socket.bind((DataHost,DataPort))
+        Socket.listen(5)
+        DataConnection, DataAddress = Socket.accept()
+        FileTransferSocket = DataConnection
+        
+    return FileTransferSocket
 
 
 Login(port,Host)
@@ -863,21 +834,13 @@ Message = ''
 while 1:
     
     Message = raw_input('Message from client: ')
-    
-    if Message[0:4] == 'RETR':
-        
-          Retrieve(Message,TypeList)
-          continue
-          
-    if Message[0:4] == 'STOR':
-        
-        Store(Message,TypeList,)
-        continue
-        
+     
     if Message[0:4] == 'PORT':
         
-        FileTransferSocket = ChangePort(Message,PortList)
-
+        PortList[0] = False
+        PortList[1] = True
+        print('portlist' + str(PortList))
+        FileTransferSocket = makeDataConnection(Message)
         continue
     
     if Message[0:4] == 'NOOP':
@@ -890,14 +853,27 @@ while 1:
 #        Restart(MarkerPosition) 
 #        continue
     
-    if Message[0:4] == 'LIST':
-
-        getList(Message)
+    if Message[0:4] == 'PASV':
         
+        PortList[0] = True
+        PortList[1] = False
+        print('portlist' + str(PortList))
+        FileTransferSocket = makeDataConnection(Message)
         continue
     
-    if Message[0:4] == 'PASV':
-        DataHost, DataPort = passiveMode(PortList)
+    if Message[0:4] == 'RETR':
+        
+          Retrieve(Message,TypeList,FileTransferSocket)
+          continue
+          
+    if Message[0:4] == 'STOR':
+        
+        Store(Message,TypeList,FileTransferSocket)
+        continue
+    
+    if Message[0:4] == 'LIST':
+
+        getList(Message,FileTransferSocket)
         continue
     
     if Message[0:4] == 'HELP':
@@ -948,6 +924,14 @@ while 1:
         
         quitService(Message)
         break
+    
+    if Message == 'lol':
+        sendBlockMode(MarkerPosition =0)
+        continue
+    
+    if Message == 'poo':
+        receiveBlockMode()
+        continue
     
     else:
         

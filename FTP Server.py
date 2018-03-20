@@ -9,7 +9,6 @@ Created on Sun Mar 04 15:06:43 2018
 import socket
 import os
 import time
-import random
 
 port = 5000
 Host = '127.0.0.1'
@@ -24,10 +23,9 @@ ModeList = [True, False, False]
 PortList = [True,False]
 
 ##################This works 100%#################### 
-def Login(port,Host):
+def Login(port,Host, Command):
     
-    ReceivedUserName = connection.recv(4096).decode("UTF-8")
-    ReceivedUserName = formatCommands(ReceivedUserName) 
+    ReceivedUserName = formatCommands(Command) 
     ServerFileDirectory = os.path.dirname(os.path.realpath('__file__'))
 
     while 1:
@@ -35,24 +33,26 @@ def Login(port,Host):
         UserAuthenticate = FolderChecker(ServerFileDirectory,ReceivedUserName)
         
         if UserAuthenticate == 0:
-            connection.send('404 User name inccorect!')
+            connection.send('404 User name inccorect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
             
         if UserAuthenticate == 1:
-            
+            print(ReceivedUserName)
             UsersFile = os.path.join(ServerFileDirectory, str(ReceivedUserName) +'\credentials.txt')
+            print(ServerFileDirectory)
+            print(UsersFile)
             RealUsername, RealPassword = readFile(UsersFile)
             break
         
     while 1:
     
         if ReceivedUserName == RealUsername:
-            connection.send('331 User name ok, require password')
+            connection.send('331 User name ok, require password\r\n')
             break
     
         else:
-            connection.send('404 User name inccorect!')
+            connection.send('404 User name inccorect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
 
@@ -64,11 +64,11 @@ def Login(port,Host):
     
         if ReceivedPassword == RealPassword:
         
-            connection.send('230 User logged in, current working directory is /')
+            connection.send('230 User logged in, current working directory is / \r\n')
             break
     
         else:
-            connection.send('404 Password inccorect')
+            connection.send('404 Password inccorect\r\n')
             ReceivedPassword = connection.recv(4096).decode("UTF-8")
             ReceivedPassword = formatCommands(ReceivedPassword)
             
@@ -120,6 +120,8 @@ def formatCommands(Message):
 ######################This works 100%####################
 def readFile(filename):
     
+    print(filename)
+    
     filehandle = open(filename)
     UserName = filehandle.readline().strip()
     Password = filehandle.readline().strip()
@@ -131,7 +133,7 @@ def readFile(filename):
 ######################This works 100%####################
 def quitService():
     
-    ReplyCode = '221 Thank you come again!'
+    ReplyCode = '221 Thank you come again!\r\n'
     connection.send(ReplyCode.encode("UTF-8"))
     print('User ' + str(address)+' has disconnected ')
     
@@ -152,7 +154,7 @@ def SOS(Command):
         ReplySOS = HelpFile.read()
         connection.send(ReplySOS)
     
-        ReplyCode = '214 Help OK'
+        ReplyCode = '214 Help OK\r\n'
         connection.send(ReplyCode)
     HelpFile.close()
         
@@ -176,12 +178,12 @@ def makeDirectory(Command):
         WorkTree = WorkTree.replace('\\','/')
         print(WorkTree)
         
-        ReplyCode = ('227 ' + WorkTree + Path + ' has been created')
+        ReplyCode = ('257 "' + WorkTree + Path + '" has been created \r\n')
         connection.send(ReplyCode.encode('UTF-8'))
         
     else:
         
-        ReplyCode = ('550 Requested action not taken, ' + str(Path) + ' already exists')
+        ReplyCode = ('550 Requested action not taken, ' + Path + ' already exists\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
 
     return 
@@ -198,7 +200,7 @@ def changeWorkingDir(Command):
         if Path == '/':
             
             os.chdir(UsersDir)
-            ReplyCode = ('200 Working directory changed to ' + '/' )
+            ReplyCode = ('250 CWD successful "/" is current directory\r\n' )
             connection.send(ReplyCode.encode('UTF-8'))
 
         else:
@@ -207,12 +209,12 @@ def changeWorkingDir(Command):
             WorkTree = str(os.getcwd())
             WorkTree = WorkTree.replace(str(UsersDir),'')
             WorkTree = WorkTree.replace('\\','/')
-            ReplyCode = ('200 Working directory changed to ' + WorkTree )
+            ReplyCode = ('250 CWD successful."'+ WorkTree+'" is current directory\r\n' )
             connection.send(ReplyCode.encode('UTF-8'))
         
     except OSError:
         
-        ReplyCode = '431 No such directory'
+        ReplyCode = '550 Requested action not taken, No such directory\r\n'
         connection.send(ReplyCode.encode('UTF-8'))
 
 
@@ -221,21 +223,19 @@ def changeWorkingDir(Command):
 ###########################################################
 ######################This works 100%####################
 
-def removeDirecory(Command):
+def removeDirectory(Command):
     
     Path = formatCommands(Command)
     FullPath = ( str(os.getcwd()) + '\\'+ str(Path))
-    print('inside the RMD')
-    print(FullPath)
-    
+
     try:
         os.rmdir(FullPath)
-        ReplyCode = ('250 Requested file action okay' + str(Path) + ' has been removed')
+        ReplyCode = ('250 Requested file action okay' + Path  + ' has been removed \r\n')
         connection.send(ReplyCode.encode('UTF-8'))
     
     except OSError:
         
-        ReplyCode = ('550 Requested action not taken, ' + str(Path) + ' is either not empty or is your current working directory')
+        ReplyCode = ('550 Requested action not taken, ' + Path + ' is not empty\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
         
     return
@@ -248,7 +248,7 @@ def changeToParentDir():
     os.chdir(UsersDir)
     print(os.getcwd())
     
-    ReplyCode = ('200 Working directory changed to ' + '/' )
+    ReplyCode = ('200 Working directory changed to / \r\n' )
     connection.send(ReplyCode.encode('UTF-8'))
     
     return 
@@ -263,12 +263,12 @@ def deleteFile(Command):
     try:
         
         os.remove(FileName)
-        ReplyCode = ('250 Requested file action okay , ' + str(FileName) + ' has been deleted.')
+        ReplyCode = ('250 Requested file action okay , ' + FileName+ ' has been deleted.\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
         
     except OSError:
         
-        ReplyCode = ('450 Requested file action not taken, ' + str(FileName) + ' is unavailable or is a path and not a file')
+        ReplyCode = ('450 Requested file action not taken, ' + FileName + ' is not a file\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
     
     
@@ -282,7 +282,7 @@ def changeType(Command,TypeList):
 
     if ParameterOne == 'A':
         
-        ReplyCode = ('200 Command okay, the type has been set to ASCII for the session')
+        ReplyCode = ('200 Command okay, the type has been set to ASCII for the session\r\n')
         
         for i in xrange(0, len(TypeList)):
             TypeList[i] = False
@@ -291,7 +291,7 @@ def changeType(Command,TypeList):
         
     elif ParameterOne == 'E':
         
-        ReplyCode = ('200 Command okay, the type has been set to EDCBIC for the session')
+        ReplyCode = ('200 Command okay, the type has been set to EDCBIC for the session\r\n')
         
         for i in xrange(0, len(TypeList)):
             TypeList[i] = False
@@ -300,7 +300,7 @@ def changeType(Command,TypeList):
          
     elif ParameterOne == 'I':
         
-        ReplyCode = ('200 Command okay, the type has been set to Image/Binary for the session')
+        ReplyCode = ('200 Command okay, the type has been set to Image/Binary for the session\r\n')
         
         for i in xrange(0, len(TypeList)):
             TypeList[i] = False
@@ -308,7 +308,7 @@ def changeType(Command,TypeList):
         TypeList[2] = True
         
     else:
-        ReplyCode = ('500 TYPE ' + ParameterOne + ' is unrecognized or not supported.')
+        ReplyCode = ('500 TYPE ' + ParameterOne + ' is unrecognized or not supported.\r\n')
         
   
     connection.send(ReplyCode.encode('UTF-8'))
@@ -324,7 +324,7 @@ def changeMode(Command,ModeList):
    
     if ParameterOne == 'S':
         
-        ReplyCode = ('200 Command okay, the mode has been set to Stream for the session')
+        ReplyCode = ('200 Command okay, the mode has been set to Stream for the session\r\n')
         
         for i in xrange(0, len(ModeList)):
             ModeList[i] = False
@@ -333,7 +333,7 @@ def changeMode(Command,ModeList):
 
     elif ParameterOne == 'C':
         
-        ReplyCode = ('200 Command okay, the mode has been set to Compression for the session')
+        ReplyCode = ('200 Command okay, the mode has been set to Compression for the session\r\n')
         
         for i in xrange(0, len(ModeList)):
             ModeList[i] = False
@@ -342,7 +342,7 @@ def changeMode(Command,ModeList):
     
     elif ParameterOne == 'B':
         
-        ReplyCode = ('200 Command okay, the mode has been set to Block for the session')
+        ReplyCode = ('200 Command okay, the mode has been set to Block for the session\r\n')
         
         for i in xrange(0, len(ModeList)):
             ModeList[i] = False
@@ -351,7 +351,7 @@ def changeMode(Command,ModeList):
         
     else:
         
-        ReplyCode = ('500 MODE ' + ParameterOne + ' is unrecognized or not supported.')
+        ReplyCode = ('500 MODE ' + ParameterOne + ' is unrecognized or not supported.\r\n')
         
         
     connection.send(ReplyCode.encode('UTF-8'))
@@ -363,7 +363,7 @@ def changeMode(Command,ModeList):
     
 def NoOperation(Command):
     
-    Response = "200 OK"
+    Response = "200 OK\r\n"
     connection.send(Response.encode("UTF-8")) 
     print('Performed no operation -_- ...')
     
@@ -371,11 +371,14 @@ def NoOperation(Command):
 
 ##########################################################
 ######################This works 100%####################
-def getDirectoryList(Command,UsersDir):
+def getDirectoryList(Command,UsersDir,DataConnection):
     
 
     Pathname = formatCommands(Command)
 
+    if Pathname == 'LIST':
+        Pathname = '\\'
+        
     if Pathname == '/':
         Pathname = ''
 
@@ -389,14 +392,19 @@ def getDirectoryList(Command,UsersDir):
     sorted(ListOfDirFiles)
     for i in ListOfDirFiles:
         FileList = FileList + str(i) +'\n'   
-        
-    ReplyCode = '150 opening data connection...' 
-    connection.send(ReplyCode.encode('UTF-8'))
-      
+          
     DataConnection.send(FileList.encode('UTF-8'))
-    ReplyCode = '226 Closing data connection'
     
+    WorkTree = str(os.getcwd())
+    WorkTree = WorkTree.replace(str(UsersDir),'')
+    WorkTree = WorkTree.replace('\\','/')
+    
+    if WorkTree == '':
+        WorkTree = '/'
+        
+    ReplyCode = '226 sucessfully transfered"'+WorkTree+'"\r\n'
     connection.send(ReplyCode.encode('UTF-8'))
+    
     DataConnection.shutdown(socket.SHUT_RDWR)
     DataConnection.close()
     
@@ -419,22 +427,23 @@ def passiveMode(Host):
 
     Host = Host.replace('.',',')
     
-    Message = ( '227 Entering Passive Mode (' + Host +',' + str(p1) + ',' +str(p2) + ')' )
+    Message = ( '227 Entering Passive Mode (' + Host +',' + str(p1) + ',' +str(p2) + ')\r\n' )
     connection.send(Message.encode("UTF-8"))
-
+    
+    ReplyCode = ('150 File status okay; about to open data connection.\r\n')
+    connection.send(ReplyCode.encode('UTF-8'))
+    
     DataConnection, DataAddress = FileTransferSocket.accept()
+    
 
+    
     return DataConnection, DataAddress
 
 ##########################################################
 ######################This works 100%####################
-def Store(Command,MarkerPosition=0):
+def Store(Command,DataConnection,MarkerPosition=0):
     
-    FileName = formatCommands(Command)
-
-    ReplyCode = ('150 File status okay; about to open data connection.')
-    connection.send(ReplyCode.encode('UTF-8'))
-    
+    FileName = formatCommands(Command)    
     StartTimer = time.time()
 
     with open(FileName,'rb') as File:
@@ -468,20 +477,20 @@ def Store(Command,MarkerPosition=0):
         ElapsedTime = StopTimer - StartTimer
         print(str(FileName) + ' has been sent to the client in '+ str(ElapsedTime) +' seconds')
         File.close()
-        
-        ReplyCode = ('226 Closing data connection '+ str(FileName) +' was transferred sucessfully')
+        WorkTree = str(os.getcwd())
+        WorkTree = WorkTree.replace(str(UsersDir),'')
+        WorkTree = WorkTree.replace('\\','/')
+        WorkTree = WorkTree +'/'+ FileName
+        ReplyCode = ('226 Successfully transferred "'+WorkTree+'" \r\n')
         connection.send(ReplyCode.encode('UTF-8'))
 
     return
 
 ##########################################################
 ######################This works 100%####################
-def retrieve(Command):
+def retrieve(Command,DataConnection):
     
     FileName = formatCommands(Command)
-    
-    ReplyCode = ('150 File status okay; about to open data connection.')
-    connection.send(ReplyCode.encode('UTF-8'))
     
     StartTimer = time.time()
     
@@ -509,25 +518,25 @@ def retrieve(Command):
         if ModeList[1]== True:
             
             IncommingData = recv_timeout(DataConnection)
-            receiveCompressionMode(DataConnection,IncommingData,File)
+            receiveCompressionMode(IncommingData,File)
         
         if ModeList[2] == True:
             
             IncommingData = recv_timeout(DataConnection)
-            receiveBlockMode(File,DataConnection,IncommingData,0)
+            receiveBlockMode(File,IncommingData,0)
            
         
         StopTimer = time.time()
         ElapsedTime = StopTimer - StartTimer
-        print (str(FileName) + ' has finished downloading\n')
-        print(str(FileName) +' ( ' +str(len(IncommingData)/1000) +' kB ) was downloaded in ' +str(ElapsedTime) +' seconds')
+        print (FileName + ' has finished downloading\n')
+        print(FileName +' ( ' +str(len(IncommingData)/1000) +' kB ) was downloaded in ' +str(ElapsedTime) +' seconds')
         File.close()
         
-        ReplyCode = ('226 Closing data connection '+ str(FileName) +' was transferred sucessfully')
+        ReplyCode = ('226 sucessfully transfered "'+FileName+'"\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
 
     
-    return
+    return 
 
 def string2bits(s='', bitnumer=8):
     
@@ -555,7 +564,7 @@ def printWorkingDir():
     else:
         WorkTree = WorkTree.replace('\\','/')
     
-    ReplyCode = ('257 current working directory is ' + WorkTree)
+    ReplyCode = ('257 "'+WorkTree+'" is current directory\r\n')
     connection.send(ReplyCode.encode('UTF-8'))
     
     return
@@ -563,7 +572,7 @@ def printWorkingDir():
 ##########################################################
 ######################This works 100%####################
 ######DO NOT USE FOR ANYHTING OTHER THAN TEXTFILES######
-def receiveCompressionMode(DataConnection,IncommingData,File):
+def receiveCompressionMode(IncommingData,File):
     
     Binary = IncommingData
     LengthOfDAta = len(Binary)
@@ -803,25 +812,23 @@ def ChangePort(Command):
     Port = int(str(hex(int(Newport[4]))[2:])  + str(hex(int(Newport[5]))[2:]),16)
 
     
-    ReplyCode = ('200 Command okay, new port is ' + str(Port) +' and new host is ' + str(Host))
+    ReplyCode = ('200 Command okay, new port is ' + str(Port) +' and new host is ' +Host +'\r\n')
     connection.send(ReplyCode.encode('UTF-8'))
     
-    ReplyCode = ('150 File status okay; about to open data connection.')
+    ReplyCode = ('150 File status okay; about to open data connection.\r\n')
     connection.send(ReplyCode.encode('UTF-8'))
      
      
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    FileTransferSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    FileTransferSocket.bind((Host,Port))
-    FileTransferSocket.listen(5)
-    DataConnection, DataAddress = FileTransferSocket.accept()
+    FileTransferSocket.connect((Host,Port))
+#    FileTransferSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#    FileTransferSocket.bind((Host,Port))
+#    FileTransferSocket.listen(5)
+#    DataConnection, DataAddress = FileTransferSocket.accept()
     
-    ReplyCode = ('ohlol')
-    DataConnection.send(ReplyCode.encode('UTF-8'))
+   
     
-    
-    
-    return Host, Port
+    return FileTransferSocket
 
 #################Needs Testing#####################
 ###################################################
@@ -838,7 +845,7 @@ def RestartFileTransfer(MarkerPosition):
 ###################################################
 ###################################################
 
-def sendBlockMode(File,DataConnection,MarkerPosition =0): 
+def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
     # Still needs work for the EOR/ERRORs/MArkers
     #128 is EOR ----------> No point in this 
     #64 is EOF ----------> done
@@ -857,117 +864,113 @@ def sendBlockMode(File,DataConnection,MarkerPosition =0):
         
         start = 0
 
-
-    if NumberOfBytes > 65536:
-        end = start + 65536
-    else:
-        end = NumberOfBytes
-
-    while NumberOfBytes > 65535:
+    while NumberOfBytes > 65536:
         
         end = start + 65536
         Block = ('000000001111111111111111' + string2bits(str(File[start:end])))
-        
+
         if TypeList[0] == True:
             Block.encode('UTF-8')
 
         if TypeList[1] == True:
             Block.encode('cp500')
                     
-        DataConnection.send(Block)
+        FileTransferSocket.send(Block)
 
         Block = ('000100000000000000000110' + string2bits(Marker))
-        
+
         if TypeList[0] == True:
             Block.encode('UTF-8')
 
         if TypeList[1] == True:
             Block.encode('cp500')
                     
-        DataConnection.send(Block)
+        FileTransferSocket.send(Block)
         
-        NumberOfBytes - 65535
-        start += 65536
-        
-    if NumberOfBytes > 0 and NumberOfBytes < 65535:
-        
-        #this must contain the end of file byte
-        Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:end+1]))
-        
-        if TypeList[0] == True:
-            Block.encode('UTF-8')
+        NumberOfBytes = NumberOfBytes - 65536
 
-        if TypeList[1] == True:
-            Block.encode('cp500')
-                    
-        DataConnection.send(Block)
+        start += 65537
     
-    return
+    if NumberOfBytes > 0 and NumberOfBytes < 65536:
+        
+        Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:]))
+        
+        if TypeList[0] == True:
+            Block.encode('UTF-8')
+
+        if TypeList[1] == True:
+            Block.encode('cp500')
+            
+        FileTransferSocket.send(Block)
+                    
+    return 
 
 #################Needs Testing#####################
 ###################################################
 ###################################################
 
-def receiveBlockMode(File,DataConnection,IncommingData,MarkerPosition=0):
-    #receiveBlockMode(File,DataConnection,IncommingData,MarkerPosition=0):
+def receiveBlockMode(File,IncommingData,MarkerPosition=0):
+
     #128 is EOR ----------> No point in this 
     #64 is EOF ----------> done
     #32 is errors -------> no point in this
     #16 marker ---------->done
-    print('i am receiving blocks?')
+    Data = IncommingData
     
+    if TypeList[0] == True:
+        Data.decode('UTF-8')
+
+    if TypeList[1] == True:
+        Data.decode('cp500')
+
     if MarkerPosition !=0:
         
         k = MarkerPosition
-        Header = IncommingData[k:k+24]
-        print('in first check here')
+        Header = Data[k:k+24]
+        
     else:
-        Header = IncommingData[0:24]
+        Header = Data[0:24]
         k =0
     
     while 1:
-
+        
         if Header[0:8] == '01000000':
-            print('in first if')
+            
             #then it is EOF
-            Number = int(Header[8:24],2)
-            print(Header[0:8])
-            print(Number)
-            
-            File.write(''.join(chr(int(IncommingData[i:i+8], 2)) for i in range(k + 24, k + Number*8, 8)))
-            
-            
-        if Header[0:8] == '00000000':
-            print('in second if')
-            #There are no EOR/EOF/Errors/Markers
-            Number = int(Header[8:24],2)            
-            print(Header[0:8])
-            print(Number)
-            
-            #File.write(''.join(chr(int(IncommingData[i:i+8], 2)) for i in range(k + 24, k + Number*8, 8)))
-            File.write(IncommingData[k + 24: k + Number*8])
-            
-        if Header[0:8]== '00010000':
-            print('in third if')
-            #there are markers
-            MarkerPosition = k + Number*8 + 24
-            print(Header[0:8])
-            print(Number)
-            Number = int(Header[8:24],2)
-            
-            File.write(''.join(chr(int(IncommingData[i:i+8], 2)) for i in range(k + 24, k + Number*8, 8)))
-            
-        k = k + Number*8
-        Header = IncommingData[k: k + 24] 
-
-        if len(IncommingData) == k:
-            print(len(IncommingData))
-            print(k)
-            print('breaking')
+            Number = int(Header[8:25],2)       
+            File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, len(Data), 8)))
+            File.close()
             break
-
-    print('i have finished receiving blocks')
+        
+        if Header[0:8] == '00000000':
+            
+            #There are no EOR/EOF/Errors/Markers
+            Number = int(Header[8:25],2)+1
+            File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 24, 8)))
+        
+        if Header[0:8]== '00010000':
+            
+            #there are markers
+            MarkerPosition = k 
+            Number = int(Header[8:25],2)
+             
+        k += Number*8 + 24
+        Header = Data[k : k + 24] 
+        
     return MarkerPosition
+
+def makeDataConnection(Command):
+    
+    if PortList[0] == True:
+        DataConnection, DataAddress = passiveMode(Host)
+        print('The current connection is to: '+ str(DataAddress))
+        
+    if PortList[1] == True:
+        DataConnection = ChangePort(Command)
+    
+    
+       
+    return DataConnection
 
 
 ControlSocket =socket.socket()
@@ -976,40 +979,52 @@ ControlSocket.listen(5)
 connection, address = ControlSocket.accept() 
 
 
-Initiation = ('220 Service established, Welcome to the Silver Server!')
+Initiation = ('220 Service established, Welcome to the Silver Server!\r\n')
 connection.send(Initiation.encode("UTF-8"))
-
-UsersDir = Login(port,Host)
-
 
 print ("Connection request from address: " + str(address))
 
 while 1:
+    
     Command = connection.recv(4096).decode("UTF-8")
 
+    if Command[0:4] == 'PORT':
+        
+        PortList[0] = False
+        PortList[1] = True
+        print('portlist' + str(PortList))
+        DataConnection= makeDataConnection(Command)
+        continue
+    
+    if Command[0:4] == 'PASV':
+        
+        PortList[0] = True
+        PortList[1] = False
+        print('portlist' + str(PortList))
+        DataConnection = makeDataConnection(Command)
+        continue
     
     if Command[0:4] == 'QUIT':
         quitService()
         break;
         
+    if Command[0:4] == 'USER':
+        UsersDir = Login(port,Host,Command)
+        continue
+        
     if Command[0:4] == 'LIST':
 
-       getDirectoryList(Command,UsersDir)
+       getDirectoryList(Command,UsersDir,DataConnection)
        continue
    
     if Command[0:4] == 'RETR':
-        Store(Command,MarkerPosition=0)
+        Store(Command,DataConnection,MarkerPosition=0)
         continue
     
     if Command[0:4] == 'STOR':
-        retrieve(Command)
+        retrieve(Command,DataConnection)
         continue
-    
-    if Command[0:4] == 'PORT':
-        
-        ChangePort(Command) 
-        continue
-    
+  
     if Command[0:4] == 'NOOP':
     
         NoOperation(Command)
@@ -1020,12 +1035,7 @@ while 1:
         MarkerPosition = 0 #defualt value
         RestartFileTransfer(MarkerPosition) 
         continue
-    
-    if Command[0:4] == 'PASV':
-        
-      DataConnection, DataAddress = passiveMode(Host)
-      continue
-  
+
     if Command[0:4] == 'HELP':
        
        SOS(Command)
@@ -1036,7 +1046,7 @@ while 1:
         continue
     
     if Command[0:3] == 'RMD':
-        removeDirecory(Command)
+        removeDirectory(Command)
         continue
     
     if Command[0:3] == 'CWD':
@@ -1064,10 +1074,9 @@ while 1:
     if Command[0:3] == 'PWD':
         printWorkingDir()
         continue
-            
+        
     else:
-      print(Command) 
-      response = ('500 Syntax error, %s unrecognized',Command)
+      response = ('500 Syntax command unrecognized\r\n')
       connection.send(response.encode("UTF-8")) 
     
     
