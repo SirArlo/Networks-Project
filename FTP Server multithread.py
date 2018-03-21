@@ -12,16 +12,6 @@ import threading
 port = 5000
 Host = '127.0.0.1'
 
-#Type List In order ASCII, EDCBIC, IMAGE
-TypeList = [True, False, False]
-
-#Mode list in order of Stream, Compressed, Block
-ModeList = [True, False, False]
-
-#for using the passive mode or Port mode in that order
-PortList = [True,False]
-
-
 class FTPserverThread(threading.Thread):
     
     def __init__(self,address, ControlSocket,connection):
@@ -33,15 +23,13 @@ class FTPserverThread(threading.Thread):
             self.port = port
             self.Host = Host
             self.Command = ''
-            self.PortList = [True,False]
-            self.ModeList = [True, False, False]
-            self.TypeList = [True, False, False]
-            #self.CommandsOneParam =['USER','PASS','RETR','STOR','MKD','RMD','DELE','HELP','LIST','TYPE','MODE','CWD', 'PORT']
+            self.PortList = [True,False] #for using the passive mode or Port mode in that order
+            self.ModeList = [True, False, False] #Mode list in order of Stream, Compressed, Block
+            self.TypeList = [True, False, False]  #Type List In order ASCII, EDCBIC, IMAGE
+            self.CurrentWorkDir = ''
+            
             print ("Connection request from address: " + str(address))
-            
-    #def __getitem__(self, key):
-     #   return self.CommandsOneParam[key]
-            
+
     def run(self):
         self.Initiation()
         
@@ -69,6 +57,8 @@ class FTPserverThread(threading.Thread):
                 
             if Command[0:4] == 'USER':
                 self.UsersDir = self.Login(port,Host,Command)
+                self.CurrentWorkDir = self.UsersDir
+                print(self.CurrentWorkDir)
                 continue
                 
             if Command[0:4] == 'LIST':
@@ -77,11 +67,11 @@ class FTPserverThread(threading.Thread):
                continue
            
             if Command[0:4] == 'RETR':
-                self.Store(self,Command,self.DataConnection,self.UsersDir)
+                self.Store(Command,self.DataConnection,self.UsersDir)
                 continue
             
             if Command[0:4] == 'STOR':
-                self.retrieve(Command,self.DataConnection)
+                self.retrieve(Command,self.DataConnection,self.UsersDir)
                 continue
           
             if Command[0:4] == 'NOOP':
@@ -92,7 +82,7 @@ class FTPserverThread(threading.Thread):
             if Command[0:4] == 'REST':
                 
                 MarkerPosition = 0 #defualt value
-                self.RestartFileTransfer(self,MarkerPosition) 
+                self.RestartFileTransfer(MarkerPosition) 
                 continue
         
             if Command[0:4] == 'HELP':
@@ -101,23 +91,23 @@ class FTPserverThread(threading.Thread):
                continue
            
             if Command[0:3] == 'MKD':
-                self.makeDirectory(Command,self.UsersDir)
+                self.makeDirectory(Command,self.CurrentWorkDir)
                 continue
             
             if Command[0:3] == 'RMD':
-                self.removeDirectory(Command,self.UsersDir)
+                self.removeDirectory(Command,self.CurrentWorkDir)
                 continue
             
             if Command[0:3] == 'CWD':
-                self.changeWorkingDir(Command)
+                self.changeWorkingDir(Command,self.CurrentWorkDir)
                 continue
             
             if Command[0:4] == 'CDUP':
-                self.changeToParentDir(self.UsersDir)
+                self.changeToParentDir(self.CurrentWorkDir)
                 continue
             
             if Command[0:4] == 'DELE':
-                self.deleteFile(Command,self.UsersDir)
+                self.deleteFile(Command,self.CurrentWorkDir)
                 continue
             
             if Command[0:4] =='TYPE':
@@ -133,7 +123,7 @@ class FTPserverThread(threading.Thread):
                 continue
                                                  
             if Command[0:3] == 'PWD':
-                self.printWorkingDir(self)
+                self.printWorkingDir(self.CurrentWorkDir)
                 continue
                 
             else:
@@ -227,9 +217,7 @@ class FTPserverThread(threading.Thread):
             #Format the message to sen to Server
                   
         return ParameterOne
-    
-    ###########################################################
-    ######################This works 100%####################
+
     def readFile(self,filename):
 
         filehandle = open(filename)
@@ -238,9 +226,7 @@ class FTPserverThread(threading.Thread):
         filehandle.close()
     
         return self.UserName, self.Password
-    
-    ###########################################################
-    ######################This works 100%####################
+
     def quitService(self,address):
         
         ReplyCode = '221 Thank you come again!\r\n'
@@ -248,9 +234,7 @@ class FTPserverThread(threading.Thread):
         print('User ' + str(address)+' has disconnected ')
         
         return
-    
-    ###########################################################
-    ######################This works 100%####################
+
     def SOS(self,Command):
         
         Parameter = self.formatCommands(Command)
@@ -272,13 +256,11 @@ class FTPserverThread(threading.Thread):
     
         return
     
-    ###########################################################
-    ######################This works 100%####################
         
-    def makeDirectory(self,Command,UsersDir):
+    def makeDirectory(self,Command,CurrentWorkDir):
         
         Path = self.formatCommands(Command)
-        FullPath = str(UsersDir) + '\\' + str(Path)
+        FullPath = self.CurrentWorkDir + '\\' + str(Path)
         
         if not os.path.exists(FullPath):
             
@@ -292,11 +274,8 @@ class FTPserverThread(threading.Thread):
             self.connection.send(ReplyCode.encode('UTF-8'))
     
         return 
-    
-    ###########################################################
-    ######################This works 100%####################
-        
-    def changeWorkingDir(self,Command):
+           
+    def changeWorkingDir(self,Command,CurrentWorkDir):
         
         Path = self.formatCommands(Command)
         RealPath = Path.replace('/','\\')
@@ -304,34 +283,33 @@ class FTPserverThread(threading.Thread):
         try:
             if Path == '/':
                 
-                os.chdir(self.UsersDir)
+                self.CurrentWorkDir = self.UsersDir
                 ReplyCode = ('250 CWD successful "/" is current directory\r\n' )
-                connection.send(ReplyCode.encode('UTF-8'))
+                self.connection.send(ReplyCode.encode('UTF-8'))
     
             else:
-                
-                os.chdir(str(os.getcwd()) + str(RealPath))
-                WorkTree = str(os.getcwd())
-                WorkTree = WorkTree.replace(str(UsersDir),'')
+
+                WorkTree = CurrentWorkDir + RealPath
+                self.CurrentWorkDir = WorkTree
+                WorkTree = WorkTree.replace(str(self.UsersDir),'')
+                print(WorkTree)
                 WorkTree = WorkTree.replace('\\','/')
+                print(WorkTree)
                 ReplyCode = ('250 CWD successful."'+ WorkTree+'" is current directory\r\n' )
-                connection.send(ReplyCode.encode('UTF-8'))
+                self.connection.send(ReplyCode.encode('UTF-8'))
             
         except OSError:
             
             ReplyCode = '550 Requested action not taken, No such directory\r\n'
-            connection.send(ReplyCode.encode('UTF-8'))
+            self.connection.send(ReplyCode.encode('UTF-8'))
     
     
         return 
-    
-    ###########################################################
-    ######################This works 100%####################
-    
-    def removeDirectory(self,Command,UsersDir):
+      
+    def removeDirectory(self,Command,CurrentWorkDir):
         
         Path = self.formatCommands(Command)
-        FullPath = (str(UsersDir) + '\\'+ str(Path))
+        FullPath = (str(CurrentWorkDir) + '\\'+ str(Path))
     
         try:
             os.rmdir(FullPath)
@@ -344,28 +322,19 @@ class FTPserverThread(threading.Thread):
             self.connection.send(ReplyCode.encode('UTF-8'))
             
         return
-    
-    ###########################################################
-    ######################This works 100%####################
+         
+    def changeToParentDir(self,CurrentWorkDir):
         
-    def changeToParentDir(self,UsersDir):
-        
-        os.chdir(UsersDir)
-        print(os.getcwd())
-        
+        self.CurrentWorkDir = self.UsersDir
         ReplyCode = ('200 Working directory changed to / \r\n' )
         self.connection.send(ReplyCode.encode('UTF-8'))
         
         return 
-    
-    ###########################################################
-    ######################This works 100%####################
         
-    def deleteFile(self,Command,UsersDir):
+    def deleteFile(self,Command,CurrentWorkDir):
         
         FileName = self.formatCommands(Command)
-        Path = UsersDir + '\\' + FileName
-
+        Path = CurrentWorkDir + '\\' + FileName
         try:
             
             os.remove(Path)
@@ -377,11 +346,8 @@ class FTPserverThread(threading.Thread):
             ReplyCode = ('450 Requested file action not taken, ' + FileName + ' is not a file\r\n')
             self.connection.send(ReplyCode.encode('UTF-8'))
         
-        
         return
     
-    ###########################################################
-    ######################This works 100%####################
     def changeType(self,Command,TypeList):
         
         ParameterOne = self.formatCommands(Command)
@@ -421,9 +387,7 @@ class FTPserverThread(threading.Thread):
     
     
         return
-    
-    ###########################################################
-    ######################This works 100%####################
+
     def changeMode(self,Command,ModeList):
         
         ParameterOne = self.formatCommands(Command)
@@ -463,9 +427,6 @@ class FTPserverThread(threading.Thread):
         self.connection.send(ReplyCode.encode('UTF-8'))
     
         return
-    
-    ##########################################################
-    ######################This works 100%####################
         
     def NoOperation(self):
         
@@ -475,23 +436,23 @@ class FTPserverThread(threading.Thread):
         
         return
     
-    ##########################################################
-    ######################This works 100%####################
     def getDirectoryList(self,Command,UsersDir,DataConnection):
-        
-    
+   
         Pathname = self.formatCommands(Command)
-    
-        if Pathname == 'LIST':
-            Pathname = '\\'
-            
-        if Pathname == '/':
-            Pathname = ''
-    
+        
+        print(Pathname)
         FileList = '\n'  
         
-        ListOfDirFiles = os.listdir(str(UsersDir) + str(Pathname))
-    
+        if Pathname == 'LIST':
+            Pathname = self.CurrentWorkDir
+            ListOfDirFiles = os.listdir(self.CurrentWorkDir)
+            
+        elif Pathname == '/':
+            ListOfDirFiles = os.listdir(str(UsersDir))
+            
+        else:
+            ListOfDirFiles = os.listdir(str(UsersDir) + str(Pathname))
+            
         if 'credentials.txt' in ListOfDirFiles:
             ListOfDirFiles.remove('credentials.txt')  
             
@@ -501,7 +462,7 @@ class FTPserverThread(threading.Thread):
               
         self.DataConnection.send(FileList.encode('UTF-8'))
         
-        WorkTree = str(UsersDir)
+        WorkTree = str(UsersDir) + str(Pathname)
         WorkTree = WorkTree.replace(str(UsersDir),'')
         WorkTree = WorkTree.replace('\\','/')
         
@@ -510,14 +471,11 @@ class FTPserverThread(threading.Thread):
             
         ReplyCode = '226 sucessfully transfered"'+WorkTree+'"\r\n'
         self.connection.send(ReplyCode.encode('UTF-8'))
-        
         self.DataConnection.shutdown(socket.SHUT_RDWR)
         self.DataConnection.close()
         
         return
     
-    ##########################################################
-    ######################This works 100%####################
     def passiveMode(self,Host):
         
         self.FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -543,14 +501,10 @@ class FTPserverThread(threading.Thread):
         
         return self.DataConnection, self.DataAddress
     
-    ##########################################################
-    ######################This works 100%####################
     def Store(self,Command,DataConnection,UsersDir,MarkerPosition=0):
         
-        FileName = self.formatCommands(Command) 
-        print('filename in store')
-        print(FileName)
-        FileName = UsersDir + '\\' + FileName
+        Document = self.formatCommands(Command) 
+        FileName = self.CurrentWorkDir + '\\' +str(Document)
         
         self.StartTimer = time.time()
     
@@ -559,112 +513,108 @@ class FTPserverThread(threading.Thread):
             print(str(FileName) + ' has been opened...')
             
             if self.ModeList[0] == True:
-                self.OutgoingData = File.read(8192)
+                OutgoingData = File.read(8192)
                  
-                while (self.OutgoingData):
+                while (OutgoingData):
                     
                     if self.TypeList[0] == True:
-                        self.OutgoingData.encode('UTF-8')
+                        OutgoingData.encode('UTF-8')
         
                     if self.TypeList[1] == True:
-                        self.OutgoingData.encode('cp500')
+                        OutgoingData.encode('cp500')
                     
-                    self.DataConnection.send(self.OutgoingData)
-                    self.OutgoingData = File.read(8192)
+                    self.DataConnection.send(OutgoingData)
+                    OutgoingData = File.read(8192)
                     
             if self.ModeList[1]== True:
                 
+                print('Sending ' + str(FileName) + ' in compression mode.')
                 self.sendCompressionMode(self.DataConnection,File)
-            
-            if ModeList[2] == True:
+
+            if self.ModeList[2] == True:
                 
+                print('Sending ' + str(FileName) + ' in block mode.')
                 self.sendBlockMode(File,self.DataConnection,MarkerPosition)
-                
+
                 
             self.StopTimer = time.time()
             self.ElapsedTime = self.StopTimer - self.StartTimer
-            print(str(FileName) + ' has been sent to the client in '+ str(self.ElapsedTime) +' seconds')
+            print(str(Document) + ' has been sent to the client in '+ str(self.ElapsedTime) +' seconds')
             File.close()
-            WorkTree = str(os.getcwd())
-            WorkTree = WorkTree.replace(str(self.UsersDir),'')
-            WorkTree = WorkTree.replace('\\','/')
-            WorkTree = WorkTree +'/'+ FileName
-            ReplyCode = ('226 Successfully transferred "'+WorkTree+'" \r\n')
-            connection.send(ReplyCode.encode('UTF-8'))
+#            WorkTree = self.CurrentWorkDir
+#            WorkTree = WorkTree.replace(str(self.UsersDir),'')
+#            WorkTree = WorkTree.replace('\\','/')
+#            WorkTree = WorkTree +'/'+ FileName
+            ReplyCode = ('226 Successfully transferred "'+Document+'" \r\n')
+            self.connection.send(ReplyCode.encode('UTF-8'))
     
         return
     
-    ##########################################################
-    ######################This works 100%####################
-    def retrieve(self,Command,DataConnection):
+    def retrieve(self,Command,DataConnection,UsersDir):
         
-        self.FileName = self.formatCommands(Command)
-        
+        Document = self.formatCommands(Command)
+        FileName = self.CurrentWorkDir + '\\' +str(Document)
         self.StartTimer = time.time()
         
-        print(self.FileName)
-        print(os.getcwd())
-    
-        with open(self.FileName, 'wb') as self.File:
+        with open(FileName, 'wb') as File:
             
             if self.ModeList[0] == True:
-                print(str(self.FileName) + ' has been opened...')
+                print(str(FileName) + ' has been opened...')
                 
                 IncommingData = self.recv_timeout(self.DataConnection)
                 
                 if self.TypeList[0] == True:
                     IncommingData.decode('UTF-8')
-                    self.File.write(IncommingData)
+                    File.write(IncommingData)
                     
                 if self.TypeList[1] == True:
                     IncommingData.decode('cp500')
-                    self.File.write(IncommingData)
+                    File.write(IncommingData)
                     
                 if self.TypeList[2] == True:
-                    self.File.write(IncommingData)
+                    File.write(IncommingData)
                     
             if self.ModeList[1]== True:
                 
                 IncommingData = self.recv_timeout(self.DataConnection)
-                self.receiveCompressionMode(IncommingData,self.File)
-            
+                print('Receiving ' + str(FileName) + ' in compression mode.')
+                self.receiveCompressionMode(IncommingData,File)
+
             if self.ModeList[2] == True:
                 
                 IncommingData = self.recv_timeout(self.DataConnection)
-                self.receiveBlockMode(self.File,IncommingData,0)
-               
+                print('Receiving ' + str(FileName) + ' in block mode.')
+                self.receiveBlockMode(File,IncommingData,0)
+ 
             
             self.StopTimer = time.time()
             self.ElapsedTime = self.StopTimer - self.StartTimer
-            print (self.FileName + ' has finished downloading\n')
-            print(self.FileName +' ( ' +str(len(IncommingData)/1000) +' kB ) was downloaded in ' +str(self.ElapsedTime) +' seconds')
-            self.File.close()
+            print (Document + ' has finished downloading\n')
+            print(Document +' ( ' +str(len(IncommingData)/1000) +' kB ) was downloaded in ' +str(self.ElapsedTime) +' seconds')
+            File.close()
             
-            ReplyCode = ('226 sucessfully transfered "'+self.FileName+'"\r\n')
+            ReplyCode = ('226 sucessfully transfered "'+Document+'"\r\n')
             self.connection.send(ReplyCode.encode('UTF-8'))
-    
-        
+
         return 
     
-    def string2bits(s='', bitnumer=8):
+    def string2bits(self,s='', bitnumer=8):
         
         List = [bin(ord(x))[2:].zfill(bitnumer) for x in s]
         
         return ''.join(List)
     
     
-    def Number2bits(Number, NoBits):
+    def Number2bits(self,Number, NoBits):
         
         Number = bin(Number)[2:]
         
         return str(Number).zfill(NoBits)
     
-    ##########################################################
-    ######################This works 100%####################
-    def printWorkingDir(self,UsersDir):
+    def printWorkingDir(self,CurrentWorkDir):
         
-        WorkTree = str(os.getcwd())
-        WorkTree = WorkTree.replace(str(UsersDir),'')
+        WorkTree = CurrentWorkDir
+        WorkTree = WorkTree.replace(str(self.UsersDir),'')
         
         if WorkTree == '':
             WorkTree = '/'
@@ -677,11 +627,8 @@ class FTPserverThread(threading.Thread):
         
         return
     
-    ##########################################################
-    ######################This works 100%####################
-    ######DO NOT USE FOR ANYHTING OTHER THAN TEXTFILES######
-    def receiveCompressionMode(IncommingData,File):
-        
+    def receiveCompressionMode(self,IncommingData,File):
+
         Binary = IncommingData
         LengthOfDAta = len(Binary)
         Header = Binary[0:8]
@@ -697,7 +644,16 @@ class FTPserverThread(threading.Thread):
              i =0
     
              while i < Number:
-                 File.write(chr(int(Binary[k+9:k+16],2)))
+                 
+                 Block=chr(int(Binary[k+9:k+16],2))
+                 
+                 if self.TypeList[0] == True:
+                     Block.decode('UTF-8')
+
+                 if self.TypeList[1] == True:
+                     Block.decode('cp500')
+             
+                 File.write(Block)                 
                  
                  i += 1
              Number = 1
@@ -705,14 +661,31 @@ class FTPserverThread(threading.Thread):
             if Header[0] == '0':
              
              Number = int(Header[1:],2)
-             File.write(''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8)))
+             Block = ''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8))
+             
+             if self.TypeList[0] == True:
+                 Block.decode('UTF-8')
+
+             if self.TypeList[1] == True:
+                 Block.decode('cp500')
+                 
+             File.write(Block)
               
             if Header[0] == '1' and Header[1] == '1':
                 
                 Number = int(Header[2:],2)
                 i =0
                 while i<Number:
-                    File.write(chr(int(Binary[k+9:k+16],2)))
+                    
+                    Block = chr(int(Binary[k+9:k+16],2))
+
+                    if self.TypeList[0] == True:
+                        Block.decode('UTF-8')
+
+                    if self.TypeList[1] == True:
+                        Block.decode('cp500')                    
+                    
+                    File.write(Block)
                     
                     i += 1
                 Number = 0
@@ -725,10 +698,7 @@ class FTPserverThread(threading.Thread):
                 
         return
     
-    ##########################################################
-    ######################This works 100%####################
-    ######DO NOT USE FOR ANYHTING OTHER THAN TEXTFILES######
-    def sendCompressionMode(DataConnection,File):
+    def sendCompressionMode(self,DataConnection,File):
                
         File = File.read()
         DataToCompress = ''
@@ -770,30 +740,30 @@ class FTPserverThread(threading.Thread):
                     start = i -counter
                     while counter >= 127:
     
-                     Block  = ('01111111' + string2bits(DataToCompress[start:start + 127],8))
+                     Block  = ('01111111' + self.string2bits(DataToCompress[start:start + 127],8))
                      
-                     if TypeList[0] == True:
+                     if self.TypeList[0] == True:
                          Block.encode('UTF-8')
     
-                     if TypeList[1] == True:
+                     if self.TypeList[1] == True:
                         Block.encode('cp500')
                         
-                     DataConnection.send(Block)
+                     self.DataConnection.send(Block)
                      
                      start = start + 127
                      counter = counter - 127
                      
                     if counter > 0 and counter < 127:
     
-                        Block = ('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8))            
+                        Block = ('0' + self.Number2bits(counter,7) + self.string2bits(DataToCompress[start:start + counter],8))            
                         
-                        if TypeList[0] == True:
+                        if self.TypeList[0] == True:
                             Block.encode('UTF-8')
     
-                        if TypeList[1] == True:
+                        if self.TypeList[1] == True:
                             Block.encode('cp500')
                         
-                        DataConnection.send(Block)
+                        self.DataConnection.send(Block)
                                            
                 if Map[i] > 1:
      
@@ -801,28 +771,28 @@ class FTPserverThread(threading.Thread):
                     
                     while NumberBlocks >= 63:
                         
-                        Block = ('10111111' + str(string2bits(DataToCompress[i],8)))
+                        Block = ('10111111' + str(self.string2bits(DataToCompress[i],8)))
                         
-                        if TypeList[0] == True:
+                        if self.TypeList[0] == True:
                             Block.encode('UTF-8')
     
-                        if TypeList[1] == True:
+                        if self.TypeList[1] == True:
                             Block.encode('cp500')
                         
-                        DataConnection.send(Block)
+                        self.DataConnection.send(Block)
                         NumberBlocks = NumberBlocks - 63
                         
                     if NumberBlocks > 0 and NumberBlocks < 63:
                         
-                        Block = ('10' + Number2bits(NumberBlocks,6) + str(string2bits(DataToCompress[i],8)))
+                        Block = ('10' + self.Number2bits(NumberBlocks,6) + str(self.string2bits(DataToCompress[i],8)))
                         
-                        if TypeList[0] == True:
+                        if self.TypeList[0] == True:
                             Block.encode('UTF-8')
     
-                        if TypeList[1] == True:
+                        if self.TypeList[1] == True:
                             Block.encode('cp500')
                         
-                        DataConnection.send(Block)
+                        self.DataConnection.send(Block)
     
                 counter = 0  
                 
@@ -835,46 +805,41 @@ class FTPserverThread(threading.Thread):
             start = i -counter
             while counter >= 127:
     
-             Block = ('01111111' + string2bits(DataToCompress[start:start + 127],8)) 
+             Block = ('01111111' + self.string2bits(DataToCompress[start:start + 127],8)) 
     
-             if TypeList[0] == True:
+             if self.TypeList[0] == True:
                  Block.encode('UTF-8')
     
-             if TypeList[1] == True:
+             if self.TypeList[1] == True:
                 Block.encode('cp500')
                         
-             DataConnection.send(Block)
+             self.DataConnection.send(Block)
              
              start = start + 127
              counter = counter - 127
              
             if counter > 0 and counter < 127:
     
-                Block = ('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8))
+                Block = ('0' + self.Number2bits(counter,7) + self.string2bits(DataToCompress[start:start + counter],8))
     
-                if TypeList[0] == True:
+                if self.TypeList[0] == True:
                     Block.encode('UTF-8')
     
-                if TypeList[1] == True:
+                if self.TypeList[1] == True:
                     Block.encode('cp500')
                         
-                DataConnection.send(Block)
+                self.DataConnection.send(Block)
                 
         return
     
     
-    ###################################################
-    ##############NEEDS REWRITING######################
     def recv_timeout(self,DataConnection,timeout=2):
         #make socket non blocking
         self.DataConnection.setblocking(0)
-         
-        #total data partwise in an array
         total_data=[];
         data='';
-         
-        #beginning time
-        begin=time.time()
+        begin = time.time()
+        
         while 1:
             #if you got some data, then break after timeout
             if total_data and time.time()-begin > timeout:
@@ -899,11 +864,6 @@ class FTPserverThread(threading.Thread):
          
         #join all parts to make final string
         return ''.join(total_data)
-    
-    
-    #################Needs Testing#####################
-    ###################################################
-    ###################################################
     
     def ChangePort(self,Command):
         
@@ -932,22 +892,14 @@ class FTPserverThread(threading.Thread):
 
         return self.FileTransferSocket
     
-    #################Needs Testing#####################
-    ###################################################
-    ###################################################
     
-    def RestartFileTransfer(MarkerPosition):
+    def RestartFileTransfer(self,MarkerPosition):
         
-        receiveBlockMode(MarkerPosition)
+        self.receiveBlockMode(MarkerPosition)
     
         return
-    
-    
-    #################Needs Testing#####################
-    ###################################################
-    ###################################################
-    
-    def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
+
+    def sendBlockMode(self,File,FileTransferSocket,MarkerPosition=0): 
         # Still needs work for the EOR/ERRORs/MArkers
         #128 is EOR ----------> No point in this 
         #64 is EOF ----------> done
@@ -969,22 +921,22 @@ class FTPserverThread(threading.Thread):
         while NumberOfBytes > 65536:
             
             end = start + 65536
-            Block = ('000000001111111111111111' + string2bits(str(File[start:end])))
+            Block = ('000000001111111111111111' + self.string2bits(str(File[start:end])))
     
-            if TypeList[0] == True:
+            if self.TypeList[0] == True:
                 Block.encode('UTF-8')
     
-            if TypeList[1] == True:
+            if self.TypeList[1] == True:
                 Block.encode('cp500')
                         
             FileTransferSocket.send(Block)
     
-            Block = ('000100000000000000000110' + string2bits(Marker))
+            Block = ('000100000000000000000110' + self.string2bits(Marker))
     
-            if TypeList[0] == True:
+            if self.TypeList[0] == True:
                 Block.encode('UTF-8')
     
-            if TypeList[1] == True:
+            if self.TypeList[1] == True:
                 Block.encode('cp500')
                         
             FileTransferSocket.send(Block)
@@ -995,23 +947,19 @@ class FTPserverThread(threading.Thread):
         
         if NumberOfBytes > 0 and NumberOfBytes < 65536:
             
-            Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:]))
+            Block =('01000000' + self.Number2bits(NumberOfBytes,16) + self.string2bits(File[start:]))
             
-            if TypeList[0] == True:
+            if self.TypeList[0] == True:
                 Block.encode('UTF-8')
     
-            if TypeList[1] == True:
+            if self.TypeList[1] == True:
                 Block.encode('cp500')
                 
             FileTransferSocket.send(Block)
                         
         return 
     
-    #################Needs Testing#####################
-    ###################################################
-    ###################################################
-    
-    def receiveBlockMode(File,IncommingData,MarkerPosition=0):
+    def receiveBlockMode(self,File,IncommingData,MarkerPosition=0):
     
         #128 is EOR ----------> No point in this 
         #64 is EOF ----------> done
@@ -1019,10 +967,10 @@ class FTPserverThread(threading.Thread):
         #16 marker ---------->done
         Data = IncommingData
         
-        if TypeList[0] == True:
+        if self.TypeList[0] == True:
             Data.decode('UTF-8')
     
-        if TypeList[1] == True:
+        if self.TypeList[1] == True:
             Data.decode('cp500')
     
         if MarkerPosition !=0:
@@ -1083,21 +1031,14 @@ class FTPserverThread(threading.Thread):
 
 
 ControlSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#ControlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 ControlSocket.bind(('', port))
  
 print("The Silver Server is up and running!")
 print("Awaiting client connection requests...")
 
 while True:
-    #serverSocket.listen(1)
+    
     ControlSocket.listen(1)
     connection, address = ControlSocket.accept()
     newthread = FTPserverThread(address, ControlSocket,connection)
     newthread.start()
-
-
-
-
-
-    

@@ -22,7 +22,6 @@ ModeList = [True, False, False]
 #for using the passive mode or Port mode in that order
 PortList = [True,False]
 
-##################This works 100%#################### 
 def Login(port,Host, Command):
     
     ReceivedUserName = formatCommands(Command) 
@@ -76,8 +75,6 @@ def Login(port,Host, Command):
 
     return os.getcwd()
 
-###########################################################
-######################This works 100%####################
 def FolderChecker(ServerFileDirectory,ReceivedUserName):
     
     Pathname = (str(ServerFileDirectory) +'\\'+ str(ReceivedUserName))
@@ -91,8 +88,6 @@ def FolderChecker(ServerFileDirectory,ReceivedUserName):
         
       return 0
 
-###########################################################
-######################This works 100%####################
 def formatCommands(Message):
     
     CommandsOneParam = ['USER','PASS','RETR','STOR','MKD','RMD','DELE','HELP','LIST','TYPE','MODE','CWD', 'PORT']
@@ -116,8 +111,6 @@ def formatCommands(Message):
               
     return ParameterOne
 
-###########################################################
-######################This works 100%####################
 def readFile(filename):
     
     print(filename)
@@ -129,8 +122,6 @@ def readFile(filename):
 
     return UserName, Password
 
-###########################################################
-######################This works 100%####################
 def quitService():
     
     ReplyCode = '221 Thank you come again!\r\n'
@@ -139,8 +130,6 @@ def quitService():
     
     return
 
-###########################################################
-######################This works 100%####################
 def SOS(Command):
     
     Parameter = formatCommands(Command)
@@ -160,10 +149,7 @@ def SOS(Command):
         
 
     return
-
-###########################################################
-######################This works 100%####################
-    
+   
 def makeDirectory(Command):
     
     Path = formatCommands(Command)
@@ -187,9 +173,6 @@ def makeDirectory(Command):
         connection.send(ReplyCode.encode('UTF-8'))
 
     return 
-
-###########################################################
-######################This works 100%####################
     
 def changeWorkingDir(Command):
     
@@ -220,9 +203,6 @@ def changeWorkingDir(Command):
 
     return 
 
-###########################################################
-######################This works 100%####################
-
 def removeDirectory(Command):
     
     Path = formatCommands(Command)
@@ -239,10 +219,7 @@ def removeDirectory(Command):
         connection.send(ReplyCode.encode('UTF-8'))
         
     return
-
-###########################################################
-######################This works 100%####################
-    
+   
 def changeToParentDir():
     
     os.chdir(UsersDir)
@@ -252,9 +229,6 @@ def changeToParentDir():
     connection.send(ReplyCode.encode('UTF-8'))
     
     return 
-
-###########################################################
-######################This works 100%####################
     
 def deleteFile(Command):
     
@@ -274,8 +248,6 @@ def deleteFile(Command):
     
     return
 
-###########################################################
-######################This works 100%####################
 def changeType(Command,TypeList):
     
     ParameterOne = formatCommands(Command)
@@ -316,8 +288,6 @@ def changeType(Command,TypeList):
 
     return
 
-###########################################################
-######################This works 100%####################
 def changeMode(Command,ModeList):
     
     ParameterOne = formatCommands(Command)
@@ -357,9 +327,6 @@ def changeMode(Command,ModeList):
     connection.send(ReplyCode.encode('UTF-8'))
 
     return
-
-##########################################################
-######################This works 100%####################
     
 def NoOperation(Command):
     
@@ -369,8 +336,6 @@ def NoOperation(Command):
     
     return
 
-##########################################################
-######################This works 100%####################
 def getDirectoryList(Command,UsersDir,DataConnection):
     
 
@@ -410,8 +375,6 @@ def getDirectoryList(Command,UsersDir,DataConnection):
     
     return
 
-##########################################################
-######################This works 100%####################
 def passiveMode(Host):
     
 
@@ -439,8 +402,6 @@ def passiveMode(Host):
     
     return DataConnection, DataAddress
 
-##########################################################
-######################This works 100%####################
 def Store(Command,DataConnection,MarkerPosition=0):
     
     FileName = formatCommands(Command)    
@@ -486,8 +447,6 @@ def Store(Command,DataConnection,MarkerPosition=0):
 
     return
 
-##########################################################
-######################This works 100%####################
 def retrieve(Command,DataConnection):
     
     FileName = formatCommands(Command)
@@ -551,8 +510,6 @@ def Number2bits(Number, NoBits):
     
     return str(Number).zfill(NoBits)
 
-##########################################################
-######################This works 100%####################
 def printWorkingDir():
     
     WorkTree = str(os.getcwd())
@@ -569,9 +526,6 @@ def printWorkingDir():
     
     return
 
-##########################################################
-######################This works 100%####################
-######DO NOT USE FOR ANYHTING OTHER THAN TEXTFILES######
 def receiveCompressionMode(IncommingData,File):
     
     Binary = IncommingData
@@ -617,9 +571,6 @@ def receiveCompressionMode(IncommingData,File):
             
     return
 
-##########################################################
-######################This works 100%####################
-######DO NOT USE FOR ANYHTING OTHER THAN TEXTFILES######
 def sendCompressionMode(DataConnection,File):
            
     File = File.read()
@@ -754,9 +705,6 @@ def sendCompressionMode(DataConnection,File):
             
     return
 
-
-###################################################
-##############NEEDS REWRITING######################
 def recv_timeout(the_socket,timeout=2):
     #make socket non blocking
     the_socket.setblocking(0)
@@ -792,11 +740,6 @@ def recv_timeout(the_socket,timeout=2):
     #join all parts to make final string
     return ''.join(total_data)
 
-
-#################Needs Testing#####################
-###################################################
-###################################################
-
 def ChangePort(Command):
     
     Newport = formatCommands(Command)
@@ -821,29 +764,14 @@ def ChangePort(Command):
      
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Port))
-#    FileTransferSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#    FileTransferSocket.bind((Host,Port))
-#    FileTransferSocket.listen(5)
-#    DataConnection, DataAddress = FileTransferSocket.accept()
-    
-   
-    
-    return FileTransferSocket
 
-#################Needs Testing#####################
-###################################################
-###################################################
+    return FileTransferSocket
 
 def RestartFileTransfer(MarkerPosition):
     
     receiveBlockMode(MarkerPosition)
 
     return
-
-
-#################Needs Testing#####################
-###################################################
-###################################################
 
 def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
     # Still needs work for the EOR/ERRORs/MArkers
@@ -904,10 +832,6 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
         FileTransferSocket.send(Block)
                     
     return 
-
-#################Needs Testing#####################
-###################################################
-###################################################
 
 def receiveBlockMode(File,IncommingData,MarkerPosition=0):
 
@@ -971,7 +895,6 @@ def makeDataConnection(Command):
     
        
     return DataConnection
-
 
 ControlSocket =socket.socket()
 ControlSocket.bind((Host, port))

@@ -9,10 +9,7 @@ import time
 import os
 
 port = 5000
-#Host = '127.0.0.1'#'speedtest.tele2.net'#'ftp.mirror.ac.za'  #'66.220.9.50'##'127.0.0.1' #''#'ftp://mirror.ac.za/'
-#Host = 'ftp.dlptest.com'
 Host = 'localhost'
-
 
 #Type List In order ASCII, EDCBIC, IMAGE
 TypeList = [True, False, False]
@@ -26,7 +23,6 @@ PortList = [True,False]
 ControlSocket = socket.socket()
 ControlSocket.connect((Host,port))
 
-##################This works 100 % needs exceptions#################### 
 def Login(port,Host): 
     
     #Establish the connection hopefully receiving the 220 Service Ready
@@ -36,11 +32,7 @@ def Login(port,Host):
     ReplyCode = ''
     while 1:
         
-        #Username = 'USER dlpuser@dlptest.com'
-        #Username = 'anonymous'
-        Username = 'USER ArloE'
-        #Username = raw_input('Enter user name: ')
-        #Username = 'USER ' + Username + '\r\n'
+        Username = raw_input('Enter user name: ')
         Message,_ = formatCommands(Username)
 
         
@@ -54,10 +46,7 @@ def Login(port,Host):
     ReplyCode =''
     while 1:
         
-        Password = 'PASS 1'
-        #Password = 'PASS eiTqR7EMZD5zy7M'
-        #Password = raw_input('PASS ')
-        #Password = raw_input('Enter Password: ')
+        Password = raw_input('Enter Password: ')
         Message,_ = formatCommands(Password)
 
         ControlSocket.send(Message.encode('UTF-8'))
@@ -70,7 +59,6 @@ def Login(port,Host):
 
     return
 
-##################This Wokrs 100%#################
 def getList(Message,FileTransferSocket):
     
     Message,_ = formatCommands(Message)
@@ -88,8 +76,6 @@ def getList(Message,FileTransferSocket):
 
     return
 
-
-##################This Wokrs 100%#################
 def NoOperation(Message):
     
     Message = Message +'\r\n'
@@ -107,7 +93,6 @@ def NoOperation(Message):
     
     return
 
-##################This Wokrs 100%#################
 def passiveMode():
     
     Message,_ = formatCommands('PASV')
@@ -138,9 +123,7 @@ def Number2bits(Number, NoBits):
     Number = bin(Number)[2:]
     
     return str(Number).zfill(NoBits)
-
-##################This Wokrs 100%#################
-    
+   
 def quitService(Message):
     
     Message,_= formatCommands(Message)
@@ -151,7 +134,6 @@ def quitService(Message):
     
     return
 
-##################THis works 100%###################
 def getHelp(Message):
     
     Message,_ = formatCommands(Message)
@@ -166,7 +148,6 @@ def getHelp(Message):
         
     return
 
-##################This Wokrs 100%#################
 def changeType(Message,TypeList):
     
     Message,ParameterOne = formatCommands(Message)
@@ -198,7 +179,6 @@ def changeType(Message,TypeList):
 
     return
 
-#########This works 100 % needs exceptions##################
 def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     
     Message,Filename = formatCommands(Message)
@@ -224,6 +204,9 @@ def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
                 IncommingData.decode('cp500')
                 File.write(IncommingData)
                 
+            if TypeList[2]== True:
+                File.write(IncommingData)
+                
         if ModeList[1]== True:
             
            IncommingData = recv_timeout(FileTransferSocket)
@@ -247,7 +230,6 @@ def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     
     return
 
-#########This works 100 % needs exceptions##################
 def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
      
     Message,ParameterOne = formatCommands(Message)
@@ -296,7 +278,6 @@ def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     
     return
 
-#########This works 100 % needs exceptions##################
 def changeMode(Message,ModeList):
     
     Message, ParameterOne = formatCommands(Message)
@@ -329,7 +310,6 @@ def changeMode(Message,ModeList):
  
     return
 
-#########This works 100 % needs exceptions##################
 def makeDirectory(Message):
     
     Message,Pathname = formatCommands(Message)
@@ -340,7 +320,6 @@ def makeDirectory(Message):
     
     return
 
-#########This works 100 % needs exceptions##################
 def removeDirectory(Message):
     
     Message,Pathname = formatCommands(Message)
@@ -351,7 +330,6 @@ def removeDirectory(Message):
     
     return
 
-#########This works 100 % needs exceptions##################
 def changeToParentDirectory(Message):
     
     Message,Pathname = formatCommands(Message)
@@ -362,7 +340,6 @@ def changeToParentDirectory(Message):
     
     return
 
-#########This works 100 % needs exceptions##################
 def deleteFileInDirectory(Message):
     
     Message,Pathname = formatCommands(Message)
@@ -373,7 +350,6 @@ def deleteFileInDirectory(Message):
     
     return
 
-#########This works 100 % needs exceptions##################
 def changeWorkingDirectory(Message):
     
     Message,Pathname = formatCommands(Message)
@@ -384,7 +360,6 @@ def changeWorkingDirectory(Message):
     
     return
 
-###############Works for textfiles only##################
 def sendCompressionMode(File,FileTransferSocket):
            
     File = File.read()
@@ -507,6 +482,7 @@ def sendCompressionMode(File,FileTransferSocket):
         if counter > 0 and counter < 127:
 
             Block = ('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8))
+            
             if TypeList[0] == True:
                 Block.encode('UTF-8')
 
@@ -517,7 +493,6 @@ def sendCompressionMode(File,FileTransferSocket):
             
     return
 
-###############Works for textfiles only##################
 def receiveCompressionMode(FileTransferSocket,IncommingData,File):
       
     Binary = IncommingData
@@ -536,7 +511,15 @@ def receiveCompressionMode(FileTransferSocket,IncommingData,File):
 
          while i < Number:
              
-             File.write(chr(int(Binary[k+9:k+16],2)))
+             Block = chr(int(Binary[k+9:k+16],2))
+             
+             if TypeList[0] == True:
+                Block.decode('UTF-8')
+
+             if TypeList[1] == True:
+                Block.decode('cp500')
+             
+             File.write(Block)
              
              i += 1
          Number = 1
@@ -544,8 +527,15 @@ def receiveCompressionMode(FileTransferSocket,IncommingData,File):
         if Header[0] == '0':
          
          Number = int(Header[1:],2)
+         Block = ''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8))
          
-         File.write(''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8)))
+         if TypeList[0] == True:
+                Block.decode('UTF-8')
+
+         if TypeList[1] == True:
+                Block.decode('cp500')
+         
+         File.write(Block)
           
         if Header[0] == '1' and Header[1] == '1':
             
@@ -553,7 +543,15 @@ def receiveCompressionMode(FileTransferSocket,IncommingData,File):
             i =0
             while i<Number:
                 
-                File.write(chr(int(Binary[k+9:k+16],2)))
+                Block = chr(int(Binary[k+9:k+16],2))
+                
+                if TypeList[0] == True:
+                    Block.decode('UTF-8')
+
+                if TypeList[1] == True:
+                    Block.decode('cp500')               
+
+                File.write(Block)
                 
                 i += 1
             Number = 0
@@ -566,8 +564,6 @@ def receiveCompressionMode(FileTransferSocket,IncommingData,File):
             
     return
 
-###################################################
-##############NEEDS REWRITING######################
 def recv_timeout(the_socket,timeout=2):
     #make socket non blocking
     the_socket.setblocking(0)
@@ -604,8 +600,6 @@ def recv_timeout(the_socket,timeout=2):
     return ''.join(total_data)
 
 
-###########################################################
-#################NEEDS TESTING#####################
 def ChangePort(Message): 
     
     
@@ -624,10 +618,6 @@ def ChangePort(Message):
 
     return DataHost,DataPort
    
-
-####################################################
-################NEEDS TESTING######################
-    
 def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
     # Still needs work for the EOR/ERRORs/MArkers
     #128 is EOR ----------> No point in this 
@@ -687,18 +677,12 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
         FileTransferSocket.send(Block)
                     
     return 
-
-####################################################
-################NEEDS TESTING######################
     
 def restartBlockMode(MarkerPosition,Message):
     
     #No idea how to do this 
     return
 
-####################################################
-####################################################
-################NEEDS TESTING######################
 def receiveBlockMode(File,FileTransferSocket,IncommingData,MarkerPosition=0):
 
     #128 is EOR ----------> No point in this 
@@ -706,7 +690,7 @@ def receiveBlockMode(File,FileTransferSocket,IncommingData,MarkerPosition=0):
     #32 is errors -------> no point in this
     #16 marker ---------->done
     Data = IncommingData
-    
+    Number = 0
     if TypeList[0] == True:
         Data.decode('UTF-8')
 
@@ -811,8 +795,7 @@ def makeDataConnection(Message):
         except socket.error, e:
             print ("Unable to make data connection: %s" % e)
         
-        
-        
+
     if PortList[1] == True:
                 
         DataHost,DataPort = ChangePort(Message)
@@ -839,7 +822,6 @@ while 1:
         
         PortList[0] = False
         PortList[1] = True
-        print('portlist' + str(PortList))
         FileTransferSocket = makeDataConnection(Message)
         continue
     
@@ -857,7 +839,6 @@ while 1:
         
         PortList[0] = True
         PortList[1] = False
-        print('portlist' + str(PortList))
         FileTransferSocket = makeDataConnection(Message)
         continue
     
@@ -924,20 +905,9 @@ while 1:
         
         quitService(Message)
         break
-    
-    if Message == 'lol':
-        sendBlockMode(MarkerPosition =0)
-        continue
-    
-    if Message == 'poo':
-        receiveBlockMode()
-        continue
-    
+  
     else:
         
-        ReceivedData = ControlSocket.recv(4096).decode('UTF-8')
-        print ('Received from server: ' + ReceivedData)
-        Message = raw_input('Message from client: ')
+        print (str(Message) + ' is not recognized, please format commands in CAPS')
         
-    
 ControlSocket.close()
