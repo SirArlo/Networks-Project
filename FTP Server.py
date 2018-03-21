@@ -23,59 +23,66 @@ ModeList = [True, False, False]
 PortList = [True,False]
 
 def Login(port,Host, Command):
+    #The login function processes the user and password commands, there is no anynonymous login
+    #Users have to have username and password to use the server
     
     ReceivedUserName = formatCommands(Command) 
-    ServerFileDirectory = os.path.dirname(os.path.realpath('__file__'))
+    ServerFileDirectory = os.path.dirname(os.path.realpath('__file__')) #Find the directory of the servers python file
 
     while 1:
         
         UserAuthenticate = FolderChecker(ServerFileDirectory,ReceivedUserName)
         
-        if UserAuthenticate == 0:
+        if UserAuthenticate == 0: #is user folder does not exist
             connection.send('404 User name inccorect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
             
         if UserAuthenticate == 1:
-            print(ReceivedUserName)
+            #user login details are stored in a file called credentials.txt
             UsersFile = os.path.join(ServerFileDirectory, str(ReceivedUserName) +'\credentials.txt')
-            print(ServerFileDirectory)
-            print(UsersFile)
+            #go and retrieve the user details from the file credentials.txt
             RealUsername, RealPassword = readFile(UsersFile)
             break
         
     while 1:
     
-        if ReceivedUserName == RealUsername:
+        if ReceivedUserName == RealUsername: 
+            #checks that the username mathes the one inside the file credentials.txt
             connection.send('331 User name ok, require password\r\n')
             break
     
         else:
+            #otherwise the details are incorrect
             connection.send('404 User name inccorect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
 
-
+    #now the server can receive the password
     ReceivedPassword = connection.recv(4096).decode("UTF-8")
     ReceivedPassword = formatCommands(ReceivedPassword)
  
     while 1:
     
         if ReceivedPassword == RealPassword:
-        
+            #does the password received match that in the credentials.txt?
             connection.send('230 User logged in, current working directory is / \r\n')
             break
     
         else:
+            #if not request the password again
             connection.send('404 Password inccorect\r\n')
             ReceivedPassword = connection.recv(4096).decode("UTF-8")
             ReceivedPassword = formatCommands(ReceivedPassword)
             
+    #change the directory to the Users directory to keep files sepreate from other users
     os.chdir((str(ServerFileDirectory) +'\\'+ str(ReceivedUserName)))
 
     return os.getcwd()
 
 def FolderChecker(ServerFileDirectory,ReceivedUserName):
+    #This function takes in the username and find the folder named after the user
+    #Checks if the user is valid and has login details
     
     Pathname = (str(ServerFileDirectory) +'\\'+ str(ReceivedUserName))
     IsDirectory =  os.path.isdir(Pathname)
@@ -89,7 +96,7 @@ def FolderChecker(ServerFileDirectory,ReceivedUserName):
       return 0
 
 def formatCommands(Message):
-    
+    #This function formats the commands and removes the parameters from the commands
     CommandsOneParam = ['USER','PASS','RETR','STOR','MKD','RMD','DELE','HELP','LIST','TYPE','MODE','CWD', 'PORT']
     ParameterOne = ''
  
@@ -107,14 +114,14 @@ def formatCommands(Message):
         #Obtain parameter by including whitespace in the removal
         ParameterOne = Message[Message.find(' ') + 1 :]
         ParameterOne = ParameterOne.replace('\r\n','')
-        #Format the message to sen to Server
+        #Format the message to send to Server
               
     return ParameterOne
 
 def readFile(filename):
-    
-    print(filename)
-    
+    #This function reads the contents of credentials.txt and returns
+    #the username and password inside the file
+
     filehandle = open(filename)
     UserName = filehandle.readline().strip()
     Password = filehandle.readline().strip()
@@ -123,7 +130,7 @@ def readFile(filename):
     return UserName, Password
 
 def quitService():
-    
+    #This function quits the server after sending the godbye message
     ReplyCode = '221 Thank you come again!\r\n'
     connection.send(ReplyCode.encode("UTF-8"))
     print('User ' + str(address)+' has disconnected ')
@@ -131,6 +138,9 @@ def quitService():
     return
 
 def SOS(Command):
+    #this function is the HELP command that finds textfiles in the servers file directory
+    #reads the contents and sends them to the client over the control connection
+    #The parameter can either be HELP or the command specified in the HELP operation
     
     Parameter = formatCommands(Command)
     
@@ -151,13 +161,19 @@ def SOS(Command):
     return
    
 def makeDirectory(Command):
+    # this function makes a directory for the client
+    #and creates the directory from the current working directory
     
     Path = formatCommands(Command)
     FullPath = str(os.getcwd()) + '\\' + str(Path)
     
     if not os.path.exists(FullPath):
+        #checks if the path exists already
         
         os.makedirs(FullPath)
+        #All worktree operations show the files the users have acces to and not the
+        #full file path of the computer it is running on to prevent attacks
+        
         WorkTree = str(os.getcwd())
         WorkTree = WorkTree.replace(str(UsersDir),'')
         print(WorkTree)
@@ -168,6 +184,7 @@ def makeDirectory(Command):
         connection.send(ReplyCode.encode('UTF-8'))
         
     else:
+        #if folder does exist then the directory needs a different name
         
         ReplyCode = ('550 Requested action not taken, ' + Path + ' already exists\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
@@ -175,20 +192,28 @@ def makeDirectory(Command):
     return 
     
 def changeWorkingDir(Command):
+    #This function changes the current worki9ng directory
     
     Path = formatCommands(Command)
     RealPath = Path.replace('/','\\')
     
     try:
         if Path == '/':
+            #if the path sent was the parent directory the CWD is set to the
+            #users main directory (USERSDIR)
             
             os.chdir(UsersDir)
             ReplyCode = ('250 CWD successful "/" is current directory\r\n' )
             connection.send(ReplyCode.encode('UTF-8'))
 
         else:
+            #othersie append the path onto the CWD and create the folder
             
             os.chdir(str(os.getcwd()) + str(RealPath))
+            #again worktree operations are for disclosure of information
+            #providing the illusion that the user is in the root directory
+            #even though they are in a computers documents directory
+            
             WorkTree = str(os.getcwd())
             WorkTree = WorkTree.replace(str(UsersDir),'')
             WorkTree = WorkTree.replace('\\','/')
@@ -196,6 +221,7 @@ def changeWorkingDir(Command):
             connection.send(ReplyCode.encode('UTF-8'))
         
     except OSError:
+        #if the user tries to change to a directory that does not exist throw an exception
         
         ReplyCode = '550 Requested action not taken, No such directory\r\n'
         connection.send(ReplyCode.encode('UTF-8'))
@@ -204,43 +230,51 @@ def changeWorkingDir(Command):
     return 
 
 def removeDirectory(Command):
+    #this function removes a directory by appending the selected path to the
+    #users current working directory
     
     Path = formatCommands(Command)
     FullPath = ( str(os.getcwd()) + '\\'+ str(Path))
 
     try:
+        #try remove the directory is it is empty
         os.rmdir(FullPath)
         ReplyCode = ('250 Requested file action okay' + Path  + ' has been removed \r\n')
         connection.send(ReplyCode.encode('UTF-8'))
     
     except OSError:
-        
+        #clearly the directory was not empty and cannot be deleted
         ReplyCode = ('550 Requested action not taken, ' + Path + ' is not empty\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
         
     return
    
 def changeToParentDir():
+    #this function changes to the root/parent directory for the client
+    #the users directory is a constant variable that never changes 
     
     os.chdir(UsersDir)
-    print(os.getcwd())
-    
+
     ReplyCode = ('200 Working directory changed to / \r\n' )
     connection.send(ReplyCode.encode('UTF-8'))
     
     return 
     
 def deleteFile(Command):
+    # this fucntions allows the client to delete a file in their directory
+    #Filename is extracted from the command sent to the server
     
     FileName = formatCommands(Command)
     
     try:
+        #Try to remove the file if it is infact an existing file
         
         os.remove(FileName)
         ReplyCode = ('250 Requested file action okay , ' + FileName+ ' has been deleted.\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
         
     except OSError:
+        #clearly the file does not exist and therefore cannot be removed
         
         ReplyCode = ('450 Requested file action not taken, ' + FileName + ' is not a file\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
@@ -249,12 +283,17 @@ def deleteFile(Command):
     return
 
 def changeType(Command,TypeList):
+    #This function changes the TYPE to ASCII EDCBIS or IMAGE and remains changed
+    #for the duration fo the session although ASCII is the default TYPE
     
     ParameterOne = formatCommands(Command)
 
     if ParameterOne == 'A':
         
         ReplyCode = ('200 Command okay, the type has been set to ASCII for the session\r\n')
+        
+        #The for loops set all the varibles in the list to FALSE and then
+        #Sets the requested type to true
         
         for i in xrange(0, len(TypeList)):
             TypeList[i] = False
@@ -280,6 +319,8 @@ def changeType(Command,TypeList):
         TypeList[2] = True
         
     else:
+        #otherwise if an unrecognised type is specified then the command cannot be implemented
+        
         ReplyCode = ('500 TYPE ' + ParameterOne + ' is unrecognized or not supported.\r\n')
         
   
@@ -290,11 +331,17 @@ def changeType(Command,TypeList):
 
 def changeMode(Command,ModeList):
     
+    #This function is responsible for changing the MODES of sending
+    #supported modes are STREAM, BLOCK and COMPRESSION
+    
     ParameterOne = formatCommands(Command)
    
     if ParameterOne == 'S':
         
         ReplyCode = ('200 Command okay, the mode has been set to Stream for the session\r\n')
+        
+        #The for loops set all the varibles in the list to FALSE and then
+        #Sets the requested mode to true
         
         for i in xrange(0, len(ModeList)):
             ModeList[i] = False
@@ -320,6 +367,7 @@ def changeMode(Command,ModeList):
         ModeList[2] = True
         
     else:
+        #Otherwise the requested mode has not been implemented and cannot be changed
         
         ReplyCode = ('500 MODE ' + ParameterOne + ' is unrecognized or not supported.\r\n')
         
@@ -329,6 +377,7 @@ def changeMode(Command,ModeList):
     return
     
 def NoOperation(Command):
+    #this function replies to a NOOP command
     
     Response = "200 OK\r\n"
     connection.send(Response.encode("UTF-8")) 
@@ -337,20 +386,26 @@ def NoOperation(Command):
     return
 
 def getDirectoryList(Command,UsersDir,DataConnection):
-    
+    #This function performs the LIST command and sends the directory list 
+    #over a previously established data connection using PASV
 
     Pathname = formatCommands(Command)
 
+    #If there in not parameter then the LIST is just the CWD
     if Pathname == 'LIST':
         Pathname = '\\'
         
+    #Some formatting for information disclosure about computer directories
     if Pathname == '/':
         Pathname = ''
 
     FileList = '\n'  
     
+    #Get a list of all the files in the CWD
     ListOfDirFiles = os.listdir(str(UsersDir) + str(Pathname))
 
+    #remove the credentials.txt from the list so the user doesn't know the file containing their details
+    #exists in their directory
     if 'credentials.txt' in ListOfDirFiles:
         ListOfDirFiles.remove('credentials.txt')  
         
@@ -360,6 +415,7 @@ def getDirectoryList(Command,UsersDir,DataConnection):
           
     DataConnection.send(FileList.encode('UTF-8'))
     
+    #Fortmat the directory listing for the user
     WorkTree = str(os.getcwd())
     WorkTree = WorkTree.replace(str(UsersDir),'')
     WorkTree = WorkTree.replace('\\','/')
@@ -376,15 +432,18 @@ def getDirectoryList(Command,UsersDir,DataConnection):
     return
 
 def passiveMode(Host):
-    
+    #This function implements the PASV mode for data transfer
+    #By setting up the datasocket and returning it to other functions to use
 
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    #This allows the kernel to provide an open port to gurantee a connection on local host
     FileTransferSocket.bind(('0.0.0.0', 0))
     FileTransferSocket.listen(5)
     DataPort = FileTransferSocket.getsockname()[1]
         
-
+    #Format the port and host to conform to FTP response message
     p2 = DataPort % 256
     p1 = (DataPort -p2)/256
 
@@ -404,6 +463,7 @@ def passiveMode(Host):
 
 def Store(Command,DataConnection,MarkerPosition=0):
     
+    #This function implements the RETR command from the client (server storing data on client side)
     FileName = formatCommands(Command)    
     StartTimer = time.time()
 
@@ -411,52 +471,55 @@ def Store(Command,DataConnection,MarkerPosition=0):
     
         print(str(FileName) + ' has been opened...')
         
+        #Perform checks for modes and types currently being used
+        
         if ModeList[0] == True:
             OutgoingData = File.read(8192)
              
             while (OutgoingData):
                 
                 if TypeList[0] == True:
-                    OutgoingData.encode('UTF-8')
+                    OutgoingData.encode('UTF-8') #This is ASCII
     
                 if TypeList[1] == True:
-                    OutgoingData.encode('cp500')
+                    OutgoingData.encode('cp500') #This is EDCBIC encoding
                 
-                DataConnection.send(OutgoingData)
+                DataConnection.send(OutgoingData) #This is IMAGE
                 OutgoingData = File.read(8192)
                 
         if ModeList[1]== True:
             
-            sendCompressionMode(DataConnection,File)
+            sendCompressionMode(DataConnection,File) #send in compression mode
         
         if ModeList[2] == True:
             
-            sendBlockMode(File,DataConnection,MarkerPosition)
+            sendBlockMode(File,DataConnection,MarkerPosition) #send in block mode
             
             
         StopTimer = time.time()
         ElapsedTime = StopTimer - StartTimer
         print(str(FileName) + ' has been sent to the client in '+ str(ElapsedTime) +' seconds')
         File.close()
+        #Worktree operations to send filepath to user including the file just downloaded
         WorkTree = str(os.getcwd())
         WorkTree = WorkTree.replace(str(UsersDir),'')
         WorkTree = WorkTree.replace('\\','/')
         WorkTree = WorkTree +'/'+ FileName
         ReplyCode = ('226 Successfully transferred "'+WorkTree+'" \r\n')
+        DataConnection.close()
         connection.send(ReplyCode.encode('UTF-8'))
 
     return
 
 def retrieve(Command,DataConnection):
+    #This implements the STOR command from the user (Server retrieving data from client)
     
     FileName = formatCommands(Command)
-    
     StartTimer = time.time()
     
-    print(FileName)
-    print(os.getcwd())
-
     with open(FileName, 'wb') as File:
+        
+        #perform check for modes and types currently being used
         
         if ModeList[0] == True:
             print(str(FileName) + ' has been opened...')
@@ -464,25 +527,25 @@ def retrieve(Command,DataConnection):
             IncommingData = recv_timeout(DataConnection)
             
             if TypeList[0] == True:
-                IncommingData.decode('UTF-8')
+                IncommingData.decode('UTF-8') #This is ASCII
                 File.write(IncommingData)
                 
             if TypeList[1] == True:
-                IncommingData.decode('cp500')
+                IncommingData.decode('cp500') #This is EDCBIC
                 File.write(IncommingData)
                 
             if TypeList[2] == True:
-                File.write(IncommingData)
+                File.write(IncommingData) #This is IMAGE
                 
         if ModeList[1]== True:
             
             IncommingData = recv_timeout(DataConnection)
-            receiveCompressionMode(IncommingData,File)
+            receiveCompressionMode(IncommingData,File) #receive in compression mode
         
         if ModeList[2] == True:
             
             IncommingData = recv_timeout(DataConnection)
-            receiveBlockMode(File,IncommingData,0)
+            receiveBlockMode(File,IncommingData,0) #receive in block mode
            
         
         StopTimer = time.time()
@@ -498,6 +561,8 @@ def retrieve(Command,DataConnection):
     return 
 
 def string2bits(s='', bitnumer=8):
+    #This function converts a string of data into 8 bit binary string
+    #Used for block mode
     
     List = [bin(ord(x))[2:].zfill(bitnumer) for x in s]
     
@@ -505,13 +570,17 @@ def string2bits(s='', bitnumer=8):
 
 
 def Number2bits(Number, NoBits):
+    #This function converts a decimal number into binary string of the required number of bits 
+    #Used in block mode
     
     Number = bin(Number)[2:]
     
     return str(Number).zfill(NoBits)
 
 def printWorkingDir():
+    #This function implements the PWD command
     
+    #perform directory manipulation for user
     WorkTree = str(os.getcwd())
     WorkTree = WorkTree.replace(str(UsersDir),'')
     
@@ -527,43 +596,66 @@ def printWorkingDir():
     return
 
 def receiveCompressionMode(IncommingData,File):
+    #This function allows the receiving of data in compression mode
     
+    #Initalise some variables
     Binary = IncommingData
+    
+    if TypeList[0] == True:
+        Binary.decode('UTF-8')
+
+    if TypeList[1] == True:
+        Binary.decode('cp500')
+        
     LengthOfDAta = len(Binary)
+    #set the first block header
     Header = Binary[0:8]
     Number = 0
     k =0
     
     while 1:
         
+        # this check if the block contains a compressed repeated amount of characters
         if Header[0] == '1' and Header[1] == '0':
 
-         Number = int(Header[2:],2)
+         Number = int(Header[2:],2) # find the number of repeated characters
 
          i =0
 
          while i < Number:
-             File.write(chr(int(Binary[k+9:k+16],2)))
+             
+             Block = chr(int(Binary[k+9:k+16],2))
+             
+             File.write(Block)
              
              i += 1
          Number = 1
          
+         #check if the header is of a block of non compressed data
         if Header[0] == '0':
          
-         Number = int(Header[1:],2)
-         File.write(''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8)))
-          
+         Number = int(Header[1:],2)# find the number of non-repeated characters
+         
+         Block = ''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8))
+
+         File.write(Block)
+        
+         #Check if the block contains compressed space characters
         if Header[0] == '1' and Header[1] == '1':
             
-            Number = int(Header[2:],2)
+            Number = int(Header[2:],2) # find the number of repeated spaces
             i =0
             while i<Number:
-                File.write(chr(int(Binary[k+9:k+16],2)))
+                
+                Block = chr(int(Binary[k+9:k+16],2))
+
+                #Write sequence to the file
+                File.write(Block)
                 
                 i += 1
             Number = 0
             
-        Header = Binary[k+Number*8 +8 : k+Number*8 + 16] 
+        Header = Binary[k+Number*8 +8 : k+Number*8 + 16] #Find next header based on length of previous data
         k += Number*8 + 8
         
         if k == LengthOfDAta:
@@ -572,8 +664,17 @@ def receiveCompressionMode(IncommingData,File):
     return
 
 def sendCompressionMode(DataConnection,File):
-           
-    File = File.read()
+    #This function implements the sending of data in compression mode
+    
+    File = File.read()  #Read all contents of file
+    
+    #data to compress is a string of uniquie 
+    #non repeating characters at the end of first while loop
+    #And Map is a list of number corrsponding to the DataToCompress string
+    #i.e AABCCD becomes
+    #DataToCompress = ABCD
+    #Map = [2,1,2,1]
+    
     DataToCompress = ''
     l = len(File)
     Iter = 1
@@ -582,14 +683,15 @@ def sendCompressionMode(DataConnection,File):
     
     while i < l:
         
+        #Check if the previous charcater is the same as the current character
         if File[i] == File[i - 1]:
             
             Iter += 1
             
         else:
-            
+            #When the charcaters are not the same then append the charcater to a list 
             DataToCompress = DataToCompress + File[i - 1] 
-            Map.append(Iter)
+            Map.append(Iter) #list of the character count
             Iter = 1
             
         i += 1
@@ -600,7 +702,11 @@ def sendCompressionMode(DataConnection,File):
 
     counter = 0
     i = 0
+    
+    #Cycle through the compressed data and send it in blocks with correct headers
     while i <len(DataToCompress):
+        
+        #find the number of unique characters up to 127
         
         if Map[i] == 1:
             
@@ -612,8 +718,12 @@ def sendCompressionMode(DataConnection,File):
                        
                 start = i -counter
                 while counter >= 127:
-
+                    
+                    #break up data and send it in block of the non-repeating sequences
+                    
                  Block  = ('01111111' + string2bits(DataToCompress[start:start + 127],8))
+                 
+                 #Perform TYPE checks
                  
                  if TypeList[0] == True:
                      Block.encode('UTF-8')
@@ -627,7 +737,9 @@ def sendCompressionMode(DataConnection,File):
                  counter = counter - 127
                  
                 if counter > 0 and counter < 127:
-
+                    
+                    #Format a block of unique characters less than 127 in length
+                    
                     Block = ('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8))            
                     
                     if TypeList[0] == True:
@@ -637,13 +749,15 @@ def sendCompressionMode(DataConnection,File):
                         Block.encode('cp500')
                     
                     DataConnection.send(Block)
-                                       
+            
+            #Check for where in the map there are repated sequences
             if Map[i] > 1:
  
-                NumberBlocks = Map[i] 
+                NumberBlocks = Map[i] #find out how many there are 
                 
                 while NumberBlocks >= 63:
                     
+                    #Send repeated charcaters in block of up to 63 in length
                     Block = ('10111111' + str(string2bits(DataToCompress[i],8)))
                     
                     if TypeList[0] == True:
@@ -654,7 +768,8 @@ def sendCompressionMode(DataConnection,File):
                     
                     DataConnection.send(Block)
                     NumberBlocks = NumberBlocks - 63
-                    
+                
+                #If there are left over for the repeating sequences format them with their number of occurance
                 if NumberBlocks > 0 and NumberBlocks < 63:
                     
                     Block = ('10' + Number2bits(NumberBlocks,6) + str(string2bits(DataToCompress[i],8)))
@@ -673,6 +788,7 @@ def sendCompressionMode(DataConnection,File):
         
  ##############end of while loop##################
  
+ #Perform the operations above to the end of the file when there is unaccounted for data
     if counter > 0 :
            
         start = i -counter
@@ -741,16 +857,21 @@ def recv_timeout(the_socket,timeout=2):
     return ''.join(total_data)
 
 def ChangePort(Command):
-    
+    #This function performs the PORT command when the user
+    #specifies a host and port to use for data transfer
+
     Newport = formatCommands(Command)
     Newport = Newport.split(",")
     Host = ''
     
+    #Reconstruct the host into x.x.x.x rather than x,x,x,x
     for i in range(0,4):
         
         Host+= str(Newport[i])
         if i != 3:
             Host += "."
+            
+    #re-format the port into single decimal number rather than two seperate decimal numbers
     
     Port = int(str(hex(int(Newport[4]))[2:])  + str(hex(int(Newport[5]))[2:]),16)
 
@@ -761,7 +882,7 @@ def ChangePort(Command):
     ReplyCode = ('150 File status okay; about to open data connection.\r\n')
     connection.send(ReplyCode.encode('UTF-8'))
      
-     
+    #send an inbound TCP request to the client on the specified Port and Host
     FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     FileTransferSocket.connect((Host,Port))
 
@@ -774,16 +895,17 @@ def RestartFileTransfer(MarkerPosition):
     return
 
 def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
-    # Still needs work for the EOR/ERRORs/MArkers
-    #128 is EOR ----------> No point in this 
-    #64 is EOF ----------> done
-    #32 is errors -------> no point in this
-    #16 marker ---------->done
+    #This function implements the sending of information in block mode
+    #The following headers have been used in this implementation
+    #64(01000000) is EOF ----------> done
+    #16(00010000) is marker ---------->done
+    
     
     File = File.read()
     NumberOfBytes = len(File)
-    Marker = 'rrrrrr'
+    Marker = 'rrrrrr' #set the markers to random string of charcaters
     
+    #performs some checks related to the restart of the transfer i.e marker position
     if MarkerPosition != 0: 
         
         start = MarkerPosition
@@ -791,12 +913,15 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
     else:
         
         start = 0
-
+        
+    #start to package the data into blocks of up to 65536 in size
     while NumberOfBytes > 65536:
         
         end = start + 65536
+        #package blocks that arent markers of EOF
         Block = ('000000001111111111111111' + string2bits(str(File[start:end])))
 
+        #Peform the checks for the TYPES being used
         if TypeList[0] == True:
             Block.encode('UTF-8')
 
@@ -804,7 +929,8 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
             Block.encode('cp500')
                     
         FileTransferSocket.send(Block)
-
+        
+        #Insert a marker after everyblock of length 65536
         Block = ('000100000000000000000110' + string2bits(Marker))
 
         if TypeList[0] == True:
@@ -819,6 +945,7 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
 
         start += 65537
     
+    #this must be the EOF data so package it accordingly
     if NumberOfBytes > 0 and NumberOfBytes < 65536:
         
         Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:]))
@@ -834,19 +961,21 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
     return 
 
 def receiveBlockMode(File,IncommingData,MarkerPosition=0):
-
-    #128 is EOR ----------> No point in this 
-    #64 is EOF ----------> done
-    #32 is errors -------> no point in this
-    #16 marker ---------->done
+    #This function implements the receiving of information in block mode
+    #The following headers have been used in this implementation
+    #64(01000000) is EOF ----------> done
+    #16(00010000) is marker ---------->done
+    
     Data = IncommingData
     
+    #perform the checks for the TYPES being used
     if TypeList[0] == True:
         Data.decode('UTF-8')
 
     if TypeList[1] == True:
         Data.decode('cp500')
 
+    #check if the transfer has been restarted
     if MarkerPosition !=0:
         
         k = MarkerPosition
@@ -858,37 +987,49 @@ def receiveBlockMode(File,IncommingData,MarkerPosition=0):
     
     while 1:
         
+         #This is the EOF header block 
         if Header[0:8] == '01000000':
             
-            #then it is EOF
-            Number = int(Header[8:25],2)       
+           
+            Number = int(Header[8:25],2) #extract the length of the data to follow
+            
+            #convert data from binary string to charcaters again and write to file
             File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, len(Data), 8)))
             File.close()
             break
         
+        #There are no EOF/Markers
         if Header[0:8] == '00000000':
             
-            #There are no EOR/EOF/Errors/Markers
-            Number = int(Header[8:25],2)+1
+            
+            Number = int(Header[8:25],2)+1 #extract the length of the data to follow
+            
+            #convert data from binary string to charcaters again and write to file
             File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 24, 8)))
         
+        #This is the header for a marker block
         if Header[0:8]== '00010000':
             
-            #there are markers
+            #Set marker position to current iteration of loop
             MarkerPosition = k 
             Number = int(Header[8:25],2)
              
         k += Number*8 + 24
-        Header = Data[k : k + 24] 
+        Header = Data[k : k + 24] #Find the next header in the bit stream
         
     return MarkerPosition
 
 def makeDataConnection(Command):
+    #This function creates the data connection
+    #based on whether or not the PORT or PASV command has been chosen
+    #it returns the socket object to the function that calls it
     
+    #This is the PASV mode check
     if PortList[0] == True:
         DataConnection, DataAddress = passiveMode(Host)
         print('The current connection is to: '+ str(DataAddress))
         
+    #this is the PORT mode check
     if PortList[1] == True:
         DataConnection = ChangePort(Command)
     
@@ -896,11 +1037,14 @@ def makeDataConnection(Command):
        
     return DataConnection
 
+#Create the initial TCP control connection 
+    
 ControlSocket =socket.socket()
 ControlSocket.bind((Host, port))
 ControlSocket.listen(5)  
 connection, address = ControlSocket.accept() 
 
+#Set and send the server welcome message
 
 Initiation = ('220 Service established, Welcome to the Silver Server!\r\n')
 connection.send(Initiation.encode("UTF-8"))
@@ -909,21 +1053,24 @@ print ("Connection request from address: " + str(address))
 
 while 1:
     
+    #Receive command from client
     Command = connection.recv(4096).decode("UTF-8")
 
+    #when the command mathches one of these conditions then perform the required actions
+    
     if Command[0:4] == 'PORT':
         
+        #Change the type of port to be used
         PortList[0] = False
         PortList[1] = True
-        print('portlist' + str(PortList))
         DataConnection= makeDataConnection(Command)
         continue
     
     if Command[0:4] == 'PASV':
         
+        #Change the type of port to be used
         PortList[0] = True
         PortList[1] = False
-        print('portlist' + str(PortList))
         DataConnection = makeDataConnection(Command)
         continue
     
@@ -999,6 +1146,8 @@ while 1:
         continue
         
     else:
+        
+      # if none of the commands match then it hasnt been implemented 
       response = ('500 Syntax command unrecognized\r\n')
       connection.send(response.encode("UTF-8")) 
     

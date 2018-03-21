@@ -541,13 +541,10 @@ class FTPserverThread(threading.Thread):
             self.ElapsedTime = self.StopTimer - self.StartTimer
             print(str(Document) + ' has been sent to the client in '+ str(self.ElapsedTime) +' seconds')
             File.close()
-#            WorkTree = self.CurrentWorkDir
-#            WorkTree = WorkTree.replace(str(self.UsersDir),'')
-#            WorkTree = WorkTree.replace('\\','/')
-#            WorkTree = WorkTree +'/'+ FileName
             ReplyCode = ('226 Successfully transferred "'+Document+'" \r\n')
             self.connection.send(ReplyCode.encode('UTF-8'))
-    
+            self.DataConnection.close()
+            
         return
     
     def retrieve(self,Command,DataConnection,UsersDir):

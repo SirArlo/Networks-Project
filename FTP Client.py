@@ -8,7 +8,7 @@ import socket
 import time
 import os
 
-port = 5000
+port = 21
 Host = 'localhost'
 
 #Type List In order ASCII, EDCBIC, IMAGE
@@ -20,10 +20,15 @@ ModeList = [True, False, False]
 #for using the passive mode or Port mode in that order
 PortList = [True,False]
 
+#Accept the intial control connection socket
+
 ControlSocket = socket.socket()
 ControlSocket.connect((Host,port))
 
 def Login(port,Host): 
+    #this function allows for the user to input their login details
+    #it is called first and thus does not allows the user to acess a
+    #server without login info
     
     #Establish the connection hopefully receiving the 220 Service Ready
     Reply = ControlSocket.recv(4096).decode('UTF-8')
@@ -32,20 +37,22 @@ def Login(port,Host):
     ReplyCode = ''
     while 1:
         
-        Username = raw_input('Enter user name: ')
+        #accept user input for Username
+        Username = raw_input('Enter username: ')
         Message,_ = formatCommands(Username)
 
-        
         ControlSocket.send(Message.encode('UTF-8'))
         ReplyCode = ControlSocket.recv(4096).decode('UTF-8')
         print( 'Reply from server: \n' + str(ReplyCode))
         
+        #if the reply code is good then break and move on to password
         if ReplyCode[0:3] == '331' or ReplyCode[0:3] =='230':
             break
         
     ReplyCode =''
     while 1:
         
+        #Put in the user password
         Password = raw_input('Enter Password: ')
         Message,_ = formatCommands(Password)
 
@@ -53,13 +60,16 @@ def Login(port,Host):
         ReplyCode = ControlSocket.recv(4096).decode('UTF-8')
         print('Reply from server: \n' + str(ReplyCode))
         
-        
+        #If the password is accepted move on
         if ReplyCode[0:3] == '230':
             break
 
     return
 
 def getList(Message,FileTransferSocket):
+    #this function implemets the LIST commandand 
+    #receives the directory list from server
+    #NB it must be preceeded by a PORT or PASV command
     
     Message,_ = formatCommands(Message)
       
@@ -77,6 +87,7 @@ def getList(Message,FileTransferSocket):
     return
 
 def NoOperation(Message):
+    #This function implements the NOOP command
     
     Message = Message +'\r\n'
     ControlSocket.send(Message.encode('UTF-8'))
@@ -88,12 +99,14 @@ def NoOperation(Message):
         
     else:
         
-        print ('Something has gone wrong?')
         print(Reply)
     
     return
 
 def passiveMode():
+    #This function implements the PASV command
+    #the return is used in the makeDataConnection() function
+    #to use the port and host to create the connection
     
     Message,_ = formatCommands('PASV')
     
@@ -101,6 +114,7 @@ def passiveMode():
     Reply = ControlSocket.recv(4096).decode('UTF-8')
     print( '\n' + str(Reply))
     
+    #Format the reply from the server for the port and host to be made
     start = Reply.find('(')
     end = Reply.find(')')
     Reply = Reply[start+1:end]
@@ -112,6 +126,8 @@ def passiveMode():
 
 
 def string2bits(s='', bitnumer=8):
+    #This function converts a string of data into 8 bit binary string
+    #Used for block mode
     
     List = [bin(ord(x))[2:].zfill(bitnumer) for x in s]
     
@@ -119,12 +135,17 @@ def string2bits(s='', bitnumer=8):
 
 
 def Number2bits(Number, NoBits):
+    #This function converts a decimal number into binary string of the required number of bits 
+    #Used in block mode
     
     Number = bin(Number)[2:]
     
     return str(Number).zfill(NoBits)
    
 def quitService(Message):
+    #This function handles the QUIT command
+    #After response is received the main while loop down below is exited
+    #and the control connection is terminated
     
     Message,_= formatCommands(Message)
     
@@ -135,6 +156,7 @@ def quitService(Message):
     return
 
 def getHelp(Message):
+    #This function implements the HELP command
     
     Message,_ = formatCommands(Message)
     
@@ -149,6 +171,8 @@ def getHelp(Message):
     return
 
 def changeType(Message,TypeList):
+    #This function changes the TYPE to ASCII EDCBIS or IMAGE and remains changed
+    #for the duration fo the session although ASCII is the default TYPE
     
     Message,ParameterOne = formatCommands(Message)
 
@@ -156,30 +180,36 @@ def changeType(Message,TypeList):
     Reply = ControlSocket.recv(4096).decode('UTF-8')
     print('Control connection reply: \n' + str(Reply))
     
-    if ParameterOne == 'A':
+    #make sure the server has implemented these TYPES
+    if Reply[0:3] == '200':
         
-        for i in xrange(0, len(TypeList)):
-            TypeList[i] = False
+        if ParameterOne == 'A': #ASCII
             
-        TypeList[0] = True
-        
-    if ParameterOne == 'E':
-        
-        for i in xrange(0, len(TypeList)):
-            TypeList[i] = False
+            #The for loops set all the varibles in the list to FALSE and then
+            #Sets the requested type to true
+            for i in xrange(0, len(TypeList)):
+                TypeList[i] = False
+                
+            TypeList[0] = True
             
-        TypeList[1] = True
-         
-    if ParameterOne == 'I':
-    
-        for i in xrange(0, len(TypeList)):
-            TypeList[i] = False
+        if ParameterOne == 'E':#EDCBIC
+            
+            for i in xrange(0, len(TypeList)):
+                TypeList[i] = False
+                
+            TypeList[1] = True
+             
+        if ParameterOne == 'I':#IMAGE/Binary
         
-        TypeList[2] = True
+            for i in xrange(0, len(TypeList)):
+                TypeList[i] = False
+            
+            TypeList[2] = True
 
     return
 
 def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
+    #This function implements the RETR command for the client
     
     Message,Filename = formatCommands(Message)
      
@@ -191,31 +221,33 @@ def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
 
     with open(Filename, 'wb') as File:
         
+        #Perform the checks for the MODES being used
         if ModeList[0] == True:
             print(str(Filename) + ' has been opened...')
             
             IncommingData = recv_timeout(FileTransferSocket)
             
+            #Perform the checks for the TYPES being used
             if TypeList[0] == True:
-                IncommingData.decode('UTF-8')
+                IncommingData.decode('UTF-8') #ASCII
                 File.write(IncommingData)
                 
             if TypeList[1] == True:
-                IncommingData.decode('cp500')
+                IncommingData.decode('cp500') #EDCBIC
                 File.write(IncommingData)
                 
             if TypeList[2]== True:
-                File.write(IncommingData)
+                File.write(IncommingData) #IMAGE/Binary
                 
         if ModeList[1]== True:
             
            IncommingData = recv_timeout(FileTransferSocket)
-           receiveCompressionMode(FileTransferSocket,IncommingData,File)
+           receiveCompressionMode(FileTransferSocket,IncommingData,File) #Receive in compression mode
         
         if ModeList[2] == True:
             
             IncommingData = recv_timeout(FileTransferSocket)
-            receiveBlockMode(File,FileTransferSocket,IncommingData,0)
+            receiveBlockMode(File,FileTransferSocket,IncommingData,0) #Receive in block mode
            
         StopTimer = time.time()
         ElapsedTime = StopTimer - StartTimer
@@ -231,6 +263,7 @@ def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     return
 
 def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
+     #This function implements the STOR command for the client
      
     Message,ParameterOne = formatCommands(Message)
     
@@ -244,18 +277,22 @@ def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     
         print(str(ParameterOne) + ' has been opened...\n\n')
         
+        #Perform the checks for the MODES being used
+        
         if ModeList[0] == True:
             OutgoingData = File.read(8192)
              
             while (OutgoingData):
                 
+                #Perform the checks for the TYPES being used
+                
                 if TypeList[0] == True:
-                    OutgoingData.encode('UTF-8')
+                    OutgoingData.encode('UTF-8') #ASCII
     
                 if TypeList[1] == True:
-                    OutgoingData.encode('cp500')
+                    OutgoingData.encode('cp500') #EDCBIC
                 
-                FileTransferSocket.send(OutgoingData)
+                FileTransferSocket.send(OutgoingData) #IMAGE/Binary
                 OutgoingData = File.read(8192)
                 
         if ModeList[1]== True:
@@ -279,6 +316,8 @@ def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     return
 
 def changeMode(Message,ModeList):
+    #This function is responsible for changing the MODES of sending
+    #supported modes are STREAM, BLOCK and COMPRESSION
     
     Message, ParameterOne = formatCommands(Message)
    
@@ -286,31 +325,37 @@ def changeMode(Message,ModeList):
     Reply = ControlSocket.recv(4096).decode('UTF-8')
     print('Control connection reply: \n' + str(Reply))
 
-    
-    if ParameterOne == 'S':
+    #Provided the reply has been implemented
+    if Reply[0:3] =='200':
         
-        for i in xrange(0, len(ModeList)):
-            ModeList[i] = False
+        if ParameterOne == 'S': #STREAM
             
-        ModeList[0] = True
-
-    if ParameterOne == 'C':
+        #The for loops set all the varibles in the list to FALSE and then
+        #Sets the requested mode to true
         
-        for i in xrange(0, len(ModeList)):
-            ModeList[i] = False
+            for i in xrange(0, len(ModeList)):
+                ModeList[i] = False
+                
+            ModeList[0] = True
+    
+        if ParameterOne == 'C': #COMPRESSION
             
-        ModeList[1] = True
-    
-    if ParameterOne == 'B':
-    
-        for i in xrange(0, len(ModeList)):
-            ModeList[i] = False
+            for i in xrange(0, len(ModeList)):
+                ModeList[i] = False
+                
+            ModeList[1] = True
         
-        ModeList[2] = True
+        if ParameterOne == 'B': #BLOCK
+        
+            for i in xrange(0, len(ModeList)):
+                ModeList[i] = False
+            
+            ModeList[2] = True
  
     return
 
 def makeDirectory(Message):
+    #This function implements the MKD command by the Client
     
     Message,Pathname = formatCommands(Message)
     
@@ -321,7 +366,8 @@ def makeDirectory(Message):
     return
 
 def removeDirectory(Message):
-    
+     #This function implements the RMD command by the Client
+     
     Message,Pathname = formatCommands(Message)
     
     ControlSocket.send(Message.encode('UTF-8'))
@@ -331,6 +377,7 @@ def removeDirectory(Message):
     return
 
 def changeToParentDirectory(Message):
+    #This function implements the CDUP command by the Client
     
     Message,Pathname = formatCommands(Message)
     
@@ -341,7 +388,8 @@ def changeToParentDirectory(Message):
     return
 
 def deleteFileInDirectory(Message):
-    
+    #This function implements the DELE command by the Client
+         
     Message,Pathname = formatCommands(Message)
     
     ControlSocket.send(Message.encode('UTF-8'))
@@ -351,6 +399,7 @@ def deleteFileInDirectory(Message):
     return
 
 def changeWorkingDirectory(Message):
+    #This function implements the CWD command by the Client    
     
     Message,Pathname = formatCommands(Message)
     
@@ -361,8 +410,17 @@ def changeWorkingDirectory(Message):
     return
 
 def sendCompressionMode(File,FileTransferSocket):
+    #This function implements the sending of data in compression mode
            
-    File = File.read()
+    File = File.read() #read all contents of file
+    
+    #data to compress is a string of uniquie 
+    #non repeating characters at the end of first while loop
+    #And Map is a list of number corrsponding to the DataToCompress string
+    #i.e AABCCD becomes
+    #DataToCompress = ABCD
+    #Map = [2,1,2,1]
+    
     DataToCompress = ''
     l = len(File)
     Iter = 1
@@ -371,14 +429,16 @@ def sendCompressionMode(File,FileTransferSocket):
     
     while i < l:
         
+        #Check if the previous charcater is the same as the current character
         if File[i] == File[i - 1]:
             
             Iter += 1
             
         else:
             
+            #When the charcaters are not the same then append the charcater to a list 
             DataToCompress = DataToCompress + File[i - 1] 
-            Map.append(Iter)
+            Map.append(Iter) #list of the character count
             Iter = 1
             
         i += 1
@@ -389,7 +449,11 @@ def sendCompressionMode(File,FileTransferSocket):
 
     counter = 0
     i = 0
+    
+    #Cycle through the compressed data and send it in blocks with correct headers
     while i <len(DataToCompress):
+        
+        #find the number of unique characters up to 127  
         
         if Map[i] == 1:
             
@@ -401,8 +465,12 @@ def sendCompressionMode(File,FileTransferSocket):
                        
                 start = i -counter
                 while counter >= 127:
-
+                    
+                    #break up data and send it in block of the non-repeating sequences
+                    
                  Block  = ('01111111' + string2bits(DataToCompress[start:start + 127],8))
+                 
+                 #Perform TYPE checks
                  
                  if TypeList[0] == True:
                      Block.encode('UTF-8')
@@ -416,7 +484,9 @@ def sendCompressionMode(File,FileTransferSocket):
                  counter = counter - 127
                  
                 if counter > 0 and counter < 127:
-
+                    
+                    #Format a block of unique characters less than 127 in length
+                    
                     Block = ('0' + Number2bits(counter,7) + string2bits(DataToCompress[start:start + counter],8))                
                     
                     if TypeList[0] == True:
@@ -426,13 +496,16 @@ def sendCompressionMode(File,FileTransferSocket):
                         Block.encode('cp500')
                     
                     FileTransferSocket.send(Block)
-                                       
+                    
+            #Check for where in the map there are repated sequences   
+                                    
             if Map[i] > 1: 
  
-                NumberBlocks = Map[i] 
+                NumberBlocks = Map[i] #find out how many there are 
                 
                 while NumberBlocks >= 63:
                     
+                    #Send repeated charcaters in block of up to 63 in length                    
                     Block = ('10111111' + str(string2bits(DataToCompress[i],8)))
                     
                     if TypeList[0] == True:
@@ -444,6 +517,7 @@ def sendCompressionMode(File,FileTransferSocket):
                     FileTransferSocket.send(Block)
                     NumberBlocks = NumberBlocks - 63
                     
+                #If there are left over for the repeating sequences format them with their number of occurance                    
                 if NumberBlocks > 0 and NumberBlocks < 63:
                     
                     Block = ('10' + Number2bits(NumberBlocks,6) + str(string2bits(DataToCompress[i],8)))
@@ -462,6 +536,7 @@ def sendCompressionMode(File,FileTransferSocket):
         
  ##############end of while loop##################
  
+ #Perform the operations above to the end of the file when there is unaccounted for data 
     if counter > 0 :
            
         start = i -counter
@@ -494,49 +569,52 @@ def sendCompressionMode(File,FileTransferSocket):
     return
 
 def receiveCompressionMode(FileTransferSocket,IncommingData,File):
-      
+    #This function allows the receiving of data in compression mode
+    
+    #Initalise some variables      
     Binary = IncommingData
+    #perform type checks
+    if TypeList[0] == True:
+        Binary.decode('UTF-8')
+
+    if TypeList[1] == True:
+        Binary.decode('cp500')
+        
     LengthOfDAta = len(Binary)
+    #set the first block header
     Header = Binary[0:8]
     Number = 0
     k =0
     
     while 1:
         
+         # this check if the block contains a compressed repeated amount of characters     
+         
         if Header[0] == '1' and Header[1] == '0':
 
-         Number = int(Header[2:],2)
+         Number = int(Header[2:],2)# find the number of repeated characters
 
          i =0
 
          while i < Number:
              
-             Block = chr(int(Binary[k+9:k+16],2))
-             
-             if TypeList[0] == True:
-                Block.decode('UTF-8')
-
-             if TypeList[1] == True:
-                Block.decode('cp500')
-             
+             Block = chr(int(Binary[k+9:k+16],2))    
+             #Write sequence to the file             
              File.write(Block)
              
              i += 1
          Number = 1
          
+        #check if the header is of a block of non compressed data         
         if Header[0] == '0':
          
-         Number = int(Header[1:],2)
+         Number = int(Header[1:],2)# find the number of non-repeated characters
+         
+         
          Block = ''.join(chr(int(Binary[i:i+8], 2)) for i in range(k+8, k + Number*8 + 1, 8))
-         
-         if TypeList[0] == True:
-                Block.decode('UTF-8')
-
-         if TypeList[1] == True:
-                Block.decode('cp500')
-         
          File.write(Block)
-          
+         
+        #Check if the block contains compressed space characters         
         if Header[0] == '1' and Header[1] == '1':
             
             Number = int(Header[2:],2)
@@ -544,13 +622,6 @@ def receiveCompressionMode(FileTransferSocket,IncommingData,File):
             while i<Number:
                 
                 Block = chr(int(Binary[k+9:k+16],2))
-                
-                if TypeList[0] == True:
-                    Block.decode('UTF-8')
-
-                if TypeList[1] == True:
-                    Block.decode('cp500')               
-
                 File.write(Block)
                 
                 i += 1
@@ -601,10 +672,13 @@ def recv_timeout(the_socket,timeout=2):
 
 
 def ChangePort(Message): 
-    
+    #This function implements the PORT command for the client
+    #the host and port are returned fo that the makeDataConnection()
+    #function can actually create the connection
     
     DataHost, DataPort = (Message.replace(Message[0:5],'')).split(' ')
 
+    #format the Host and Port to be able to send in x,x,x,x,y,y format
     Host = str(DataHost).replace('.', ',')
     Port = hex(int(DataPort))[2:]
     PortChange = str(Host) + ',' + str(int(Port[0:2],16)) + ','+ str(int(Port[2:],16))
@@ -619,16 +693,17 @@ def ChangePort(Message):
     return DataHost,DataPort
    
 def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
-    # Still needs work for the EOR/ERRORs/MArkers
-    #128 is EOR ----------> No point in this 
-    #64 is EOF ----------> done
-    #32 is errors -------> no point in this
-    #16 marker ---------->done
+    #This function implements the sending of information in block mode
+    #The following headers have been used in this implementation
+    #64(01000000) is EOF ----------> done
+    #16(00010000) is marker ---------->done
+    
     
     File = File.read()
     NumberOfBytes = len(File)
-    Marker = 'rrrrrr'
+    Marker = 'rrrrrr' #set the markers to random string of charcaters
     
+    #performs some checks related to the restart of the transfer i.e marker position    
     if MarkerPosition != 0: 
         
         start = MarkerPosition
@@ -636,12 +711,15 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
     else:
         
         start = 0
-
+        
+    #start to package the data into blocks of up to 65536 in size
     while NumberOfBytes > 65536:
         
         end = start + 65536
+        #package blocks that arent markers of EOF
         Block = ('000000001111111111111111' + string2bits(str(File[start:end])))
-
+        
+        #Peform the checks for the TYPES being used
         if TypeList[0] == True:
             Block.encode('UTF-8')
 
@@ -649,7 +727,8 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
             Block.encode('cp500')
                     
         FileTransferSocket.send(Block)
-
+        
+        #Insert a marker after everyblock of length 65536
         Block = ('000100000000000000000110' + string2bits(Marker))
 
         if TypeList[0] == True:
@@ -663,7 +742,8 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
         NumberOfBytes = NumberOfBytes - 65536
 
         start += 65537
-    
+        
+    #this must be the EOF data so package it accordingly    
     if NumberOfBytes > 0 and NumberOfBytes < 65536:
         
         Block =('01000000' + Number2bits(NumberOfBytes,16) + string2bits(File[start:]))
@@ -684,19 +764,22 @@ def restartBlockMode(MarkerPosition,Message):
     return
 
 def receiveBlockMode(File,FileTransferSocket,IncommingData,MarkerPosition=0):
-
-    #128 is EOR ----------> No point in this 
-    #64 is EOF ----------> done
-    #32 is errors -------> no point in this
-    #16 marker ---------->done
+    #This function implements the receiving of information in block mode
+    #The following headers have been used in this implementation
+    #64(01000000) is EOF ----------> done
+    #16(00010000) is marker ---------->done
+    
     Data = IncommingData
     Number = 0
+    
+    #perform the checks for the TYPES being used
     if TypeList[0] == True:
         Data.decode('UTF-8')
 
     if TypeList[1] == True:
         Data.decode('cp500')
-
+        
+    #check if the transfer has been restarted
     if MarkerPosition !=0:
         
         k = MarkerPosition
@@ -708,48 +791,54 @@ def receiveBlockMode(File,FileTransferSocket,IncommingData,MarkerPosition=0):
     
     while 1:
         
+         #This is the EOF header block        
         if Header[0:8] == '01000000':
             
             #then it is EOF
-            Number = int(Header[8:25],2)       
+            Number = int(Header[8:25],2)#extract the length of the data to follow 
+            
+            #convert data from binary string to charcaters again and write to file
             File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, len(Data), 8)))
             File.close()
             break
         
+        #There are no EOR/Markers
         if Header[0:8] == '00000000':
             
-            #There are no EOR/EOF/Errors/Markers
-            Number = int(Header[8:25],2)+1
+
+            Number = int(Header[8:25],2)+1#extract the length of the data to follow
+            
+            #convert data from binary string to charcaters again and write to file            
             File.write(''.join(chr(int(Data[i:i+8], 2)) for i in range(k + 24, k + Number*8 + 24, 8)))
-        
+            
+        #This is the header for a marker block        
         if Header[0:8]== '00010000':
             
-            #there are markers
+            #Set marker position to current iteration of loop
             MarkerPosition = k 
             Number = int(Header[8:25],2)
              
         k += Number*8 + 24
-        Header = Data[k : k + 24] 
+        Header = Data[k : k + 24] #Find the next header in the bit stream
         
     return MarkerPosition
 
-####################################################
-###############NEEDS COMPLETION#####################
-####################################################
 
 def formatCommands(Message):
+    #This function formats the commands sent by the client should the client also
+    #require the parameters used
     
     CoammndsNoParam=['QUIT','NOOP','PASV','CDUP', 'PWD']
     CommandsOneParam = ['USER','PASS','RETR','STOR','MKD','RMD','HELP','LIST','TYPE','MODE','DELE','CWD']
     ParameterOne = ''
 
+#format teh message with the terminating charcaters\r\n to send to the server
     if Message[0:4] in CoammndsNoParam:
         Message = Message +'\r\n'
         
     if Message[0:3] in CoammndsNoParam:
         Message = Message +'\r\n'
     
-    #Relies on the GUI entering a space after the command
     if Message[0:4] in CommandsOneParam:
         
         #Obtain parameter by including whitespace in the removal
@@ -769,6 +858,7 @@ def formatCommands(Message):
 
 
 def printWorkingDir(Message):
+    #This function implements the PWD command to send to server
     
     Message,_ = formatCommands(Message)
     
@@ -776,10 +866,11 @@ def printWorkingDir(Message):
     Reply = ControlSocket.recv(4096).decode('UTF-8')
     print('Control connection reply: \n' + str(Reply))
     
-    
     return
 
 def makeDataConnection(Message):
+    #This function physically creates the data connection to the server
+    #from the Host and Port acquired from the PASV or PORT commands
     
     if PortList[0] == True:
         DataHost,DataPort = passiveMode()
@@ -789,6 +880,7 @@ def makeDataConnection(Message):
         FileTransferSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
         try:
+            #Tries to connect using PASV but throws exception if the port is unaviable
             
             FileTransferSocket.connect((DataHost,int(DataPort)))
         
@@ -797,7 +889,8 @@ def makeDataConnection(Message):
         
 
     if PortList[1] == True:
-                
+        #Create the data connection if the PORT mode had been selected
+        
         DataHost,DataPort = ChangePort(Message)
         
         Socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -809,15 +902,18 @@ def makeDataConnection(Message):
         
     return FileTransferSocket
 
-
+#login process ia always called first
 Login(port,Host)
 
 Message = ''
 
 while 1:
     
+    #Take in client input for command to server
     Message = raw_input('Message from client: ')
      
+    #Check if the command complies with any of the supported client commands
+    
     if Message[0:4] == 'PORT':
         
         PortList[0] = False
@@ -908,6 +1004,7 @@ while 1:
   
     else:
         
+        #Otherwise the command is unrecognised 
         print (str(Message) + ' is not recognized, please format commands in CAPS')
         
 ControlSocket.close()
