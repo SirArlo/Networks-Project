@@ -1,5 +1,8 @@
 The Silver Server supports the following types:
 
+(ASCII and EDCBIC are only for use of textfiles 
+please use Image for any other type of media transfer)
+
 ASCII (by default):
 	Denoted as: A
 	Command sequence = TYPE<space>A<CRLF>

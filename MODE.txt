@@ -1,4 +1,6 @@
 The Silver Server accepts the following Modes:
+(The block and compression modes are only for
+use in ASCII and EDCBIC types)
 
 BLock Mode (by choice):
 	Denoted as:B 
