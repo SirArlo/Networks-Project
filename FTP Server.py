@@ -33,7 +33,7 @@ def Login(port,Host, Command):
         
         UserAuthenticate = FolderChecker(ServerFileDirectory,ReceivedUserName)
         
-        if UserAuthenticate == 0: #is user folder does not exist
+        if UserAuthenticate == 0: #if user folder does not exist
             connection.send('404 User name inccorect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
@@ -48,7 +48,7 @@ def Login(port,Host, Command):
     while 1:
     
         if ReceivedUserName == RealUsername: 
-            #checks that the username mathes the one inside the file credentials.txt
+            #checks that the username matches the one inside the file credentials.txt
             connection.send('331 User name ok, require password\r\n')
             break
     
@@ -261,7 +261,7 @@ def changeToParentDir():
     return 
     
 def deleteFile(Command):
-    # this fucntions allows the client to delete a file in their directory
+    #this function allows the client to delete a file in their directory
     #Filename is extracted from the command sent to the server
     
     FileName = formatCommands(Command)
@@ -415,7 +415,7 @@ def getDirectoryList(Command,UsersDir,DataConnection):
           
     DataConnection.send(FileList.encode('UTF-8'))
     
-    #Fortmat the directory listing for the user
+    #format the directory listing for the user
     WorkTree = str(os.getcwd())
     WorkTree = WorkTree.replace(str(UsersDir),'')
     WorkTree = WorkTree.replace('\\','/')
@@ -456,9 +456,7 @@ def passiveMode(Host):
     connection.send(ReplyCode.encode('UTF-8'))
     
     DataConnection, DataAddress = FileTransferSocket.accept()
-    
-
-    
+      
     return DataConnection, DataAddress
 
 def Store(Command,DataConnection,MarkerPosition=0):
@@ -719,7 +717,7 @@ def sendCompressionMode(DataConnection,File):
                 start = i -counter
                 while counter >= 127:
                     
-                    #break up data and send it in block of the non-repeating sequences
+                #break up data and send it in block of the non-repeating sequences
                     
                  Block  = ('01111111' + string2bits(DataToCompress[start:start + 127],8))
                  
@@ -822,6 +820,8 @@ def sendCompressionMode(DataConnection,File):
     return
 
 def recv_timeout(the_socket,timeout=2):
+    #This fucntion allows for the socket to receive all incomming data with no data loss
+    
     #make socket non blocking
     the_socket.setblocking(0)
      
@@ -875,7 +875,6 @@ def ChangePort(Command):
     
     Port = int(str(hex(int(Newport[4]))[2:])  + str(hex(int(Newport[5]))[2:]),16)
 
-    
     ReplyCode = ('200 Command okay, new port is ' + str(Port) +' and new host is ' +Host +'\r\n')
     connection.send(ReplyCode.encode('UTF-8'))
     
@@ -1032,9 +1031,7 @@ def makeDataConnection(Command):
     #this is the PORT mode check
     if PortList[1] == True:
         DataConnection = ChangePort(Command)
-    
-    
-       
+     
     return DataConnection
 
 #Create the initial TCP control connection 
