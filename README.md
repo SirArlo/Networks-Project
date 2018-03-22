@@ -34,11 +34,11 @@ of the file corresponding to the details of the client folder (see credentials.t
 The commands need to be entered according to FTP (commands have to be in all captial letters) with the corresponding
 formatting according to the RFC959 documentation. If there is any uncertainty about how a command is enetered, entering 
 the HELP comand will bring up the list of supported commands. Further information about a specific command can be 
-acquired by typing in HELP<spce>CommandName. This will bring up the required information about the command the client
+acquired by typing in HELP`<space>`CommandName. This will bring up the required information about the command the client
 reqested, however the <CRLF> charcaters are not entered as the client script takes care of that. For example 
-HELP<spce>MODE will bring up the list of spported modes and how to use them. The only command
+HELP`<space>`MODE will bring up the list of spported modes and how to use them. The only command
 entered by the user in the terminal that is different to FTP is the PORT command that is entered as follows:
-PORT<spce>IP-address<spce>Port-number. The FTP Client.py performs the operations on this input method in order to
+PORT`<space>`IP-address`<space>`Port-number. The FTP Client.py performs the operations on this input method in order to
 send the information to the server in the FTP format. It is just easier for the user to enter the command this way.
 
 3.) How to use the FTP Server (same applies for multithreaded version):
