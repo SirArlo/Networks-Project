@@ -134,7 +134,7 @@ class FTPserverThread(threading.Thread):
             else:
             
               #this is for the case where the command has not been implemented
-              self.response = ('500 Syntax command unrecognized\r\n')
+              self.response = ('500 Syntax error, command unrecognized\r\n')
               self.connection.send(self.response.encode("UTF-8")) 
             
          #close the control sonnection per user when they disconnect   
@@ -152,7 +152,7 @@ class FTPserverThread(threading.Thread):
             self.UserAuthenticate = self.FolderChecker(FileDirectory) #Find the directory of the servers python file
             
             if self.UserAuthenticate == 0: #if user folder does not exist
-                self.connection.send('404 User name inccorect!\r\n')
+                self.connection.send('404 user-name incorrect!\r\n')
                 self.ReceivedUserName = self.connection.recv(4096).decode("UTF-8")
                 self.ReceivedUserName = self.formatCommands(self.ReceivedUserName)
                 
@@ -167,12 +167,12 @@ class FTPserverThread(threading.Thread):
         
             if self.ReceivedUserName == self.RealUsername:
                 #checks that the username matches the one inside the file credentials.txt
-                self.connection.send('331 User name ok, require password\r\n')
+                self.connection.send('331 user-name ok, require password\r\n')
                 break
         
             else:
                 #otherwise the details are incorrect
-                self.connection.send('404 User name inccorect!\r\n')
+                self.connection.send('404 user-name incorrect!\r\n')
                 self.ReceivedUserName = self.connection.recv(4096).decode("UTF-8")
                 self.ReceivedUserName = self.formatCommands(self.ReceivedUserName)
     
@@ -184,7 +184,7 @@ class FTPserverThread(threading.Thread):
         
             if self.ReceivedPassword == self.RealPassword:
                 #does the password received match that in the credentials.txt?
-                self.connection.send('230 User logged in, current working directory is / \r\n')
+                self.connection.send('230 user logged in, current working directory is / \r\n')
                 break
         
             else:
@@ -533,7 +533,7 @@ class FTPserverThread(threading.Thread):
         if WorkTree == '':
             WorkTree = '/'
             
-        ReplyCode = '226 sucessfully transfered"'+WorkTree+'"\r\n'
+        ReplyCode = '226 successfully transfered"'+WorkTree+'"\r\n'
         self.connection.send(ReplyCode.encode('UTF-8'))
         self.DataConnection.shutdown(socket.SHUT_RDWR)
         self.DataConnection.close()
@@ -610,7 +610,7 @@ class FTPserverThread(threading.Thread):
             self.ElapsedTime = self.StopTimer - self.StartTimer
             print(str(Document) + ' has been sent to the client in '+ str(self.ElapsedTime) +' seconds')
             File.close()
-            ReplyCode = ('226 Successfully transferred "'+Document+'" \r\n')
+            ReplyCode = ('226 successfully transfered"'+Document+'" \r\n')
             self.connection.send(ReplyCode.encode('UTF-8'))
             self.DataConnection.close()
             
@@ -661,7 +661,7 @@ class FTPserverThread(threading.Thread):
             print(Document +' ( ' +str(len(IncommingData)/1000) +' kB ) was downloaded in ' +str(self.ElapsedTime) +' seconds')
             File.close()
             
-            ReplyCode = ('226 sucessfully transfered "'+Document+'"\r\n')
+            ReplyCode = ('226 successfully transfered"'+Document+'"\r\n')
             self.connection.send(ReplyCode.encode('UTF-8'))
 
         return 

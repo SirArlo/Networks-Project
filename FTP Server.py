@@ -34,7 +34,7 @@ def Login(port,Host, Command):
         UserAuthenticate = FolderChecker(ServerFileDirectory,ReceivedUserName)
         
         if UserAuthenticate == 0: #if user folder does not exist
-            connection.send('404 User name inccorect!\r\n')
+            connection.send('404 user-name incorrect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
             
@@ -49,12 +49,12 @@ def Login(port,Host, Command):
     
         if ReceivedUserName == RealUsername: 
             #checks that the username matches the one inside the file credentials.txt
-            connection.send('331 User name ok, require password\r\n')
+            connection.send('331 user-name ok, require password\r\n')
             break
     
         else:
             #otherwise the details are incorrect
-            connection.send('404 User name inccorect!\r\n')
+            connection.send('404 user-name incorrect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
 
@@ -66,12 +66,12 @@ def Login(port,Host, Command):
     
         if ReceivedPassword == RealPassword:
             #does the password received match that in the credentials.txt?
-            connection.send('230 User logged in, current working directory is / \r\n')
+            connection.send('230 user logged in, current working directory is / \r\n')
             break
     
         else:
             #if not request the password again
-            connection.send('404 Password inccorect\r\n')
+            connection.send('404 Password incorrect\r\n')
             ReceivedPassword = connection.recv(4096).decode("UTF-8")
             ReceivedPassword = formatCommands(ReceivedPassword)
             
@@ -146,7 +146,7 @@ def SOS(Command):
     
     Parameter = Parameter.upper()
     Filename = str(Parameter) + '.txt'
-    Filename = (str(os.path.realpath(__file__)).replace('BAsic TCP Server.py','') + str(Filename))
+    Filename = (str(os.path.realpath(__file__)).replace('FTP Server.py','') + str(Filename))
 
     with open(Filename,'rb') as HelpFile:
     
@@ -423,7 +423,7 @@ def getDirectoryList(Command,UsersDir,DataConnection):
     if WorkTree == '':
         WorkTree = '/'
         
-    ReplyCode = '226 sucessfully transfered"'+WorkTree+'"\r\n'
+    ReplyCode = '226 successfully transfered"'+WorkTree+'"\r\n'
     connection.send(ReplyCode.encode('UTF-8'))
     
     DataConnection.shutdown(socket.SHUT_RDWR)
@@ -503,7 +503,7 @@ def Store(Command,DataConnection,MarkerPosition=0):
         WorkTree = WorkTree.replace(str(UsersDir),'')
         WorkTree = WorkTree.replace('\\','/')
         WorkTree = WorkTree +'/'+ FileName
-        ReplyCode = ('226 Successfully transferred "'+WorkTree+'" \r\n')
+        ReplyCode = ('226 successfully transfered"'+WorkTree+'" \r\n')
         DataConnection.close()
         connection.send(ReplyCode.encode('UTF-8'))
 
@@ -552,7 +552,7 @@ def retrieve(Command,DataConnection):
         print(FileName +' ( ' +str(len(IncommingData)/1000) +' kB ) was downloaded in ' +str(ElapsedTime) +' seconds')
         File.close()
         
-        ReplyCode = ('226 sucessfully transfered "'+FileName+'"\r\n')
+        ReplyCode = ('226 successfully transfered"'+FileName+'"\r\n')
         connection.send(ReplyCode.encode('UTF-8'))
 
     
@@ -1145,7 +1145,7 @@ while 1:
     else:
         
       # if none of the commands match then it hasnt been implemented 
-      response = ('500 Syntax command unrecognized\r\n')
+      response = ('500 Syntax, command unrecognized\r\n')
       connection.send(response.encode("UTF-8")) 
     
     
