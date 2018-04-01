@@ -49,7 +49,7 @@ class Connect(object):
             
             if  self.Message[0:4] == 'NOOP':
 
-                self.NoOperation(self.Message)
+                reply = self.NoOperation(self.Message)
                 continue
             
             if  self.Message[0:4] == 'PASV':
@@ -61,12 +61,12 @@ class Connect(object):
             
             if  self.Message[0:4] == 'RETR':
                 
-                self.Retrieve(self.Message,self.TypeList,self.FileTransferSocket)
+                temp1, temp2, temp3 = self.Retrieve(self.Message,self.TypeList,self.FileTransferSocket)
                 continue
                 
             if self.Message[0:4] == 'STOR':
                 
-                self.Store(self.Message,self.TypeList,self.FileTransferSocket)
+                temp1, temp2, temp3 = self.Store(self.Message,self.TypeList,self.FileTransferSocket)
                 continue
             
             if self.Message[0:4] == 'LIST':
@@ -91,31 +91,31 @@ class Connect(object):
             
             if self.Message[0:3] == 'MKD':
                 
-                self.makeDirectory(self.Message)
+                temp = self.makeDirectory(self.Message)
                 continue
             
             if self.Message[0:3] == 'RMD':
                 
-                self.removeDirectory(self.Message)
+                temp = self.removeDirectory(self.Message)
                 continue
             
             if self.Message[0:4] == 'CDUP':
                 
-                self.changeToParentDirectory(self.Message)
+                temp = self.changeToParentDirectory(self.Message)
                 continue
             
             if self.Message[0:4] == 'DELE':
                 
-                self.deleteFileInDirectory(self.Message)
+                temp = self.deleteFileInDirectory(self.Message)
                 continue
             
             if self.Message[0:3] == 'CWD':
                 
-                self.changeWorkingDirectory(self.Message)
+                temp = self.changeWorkingDirectory(self.Message)
                 continue
             
             if self.Message[0:3] == 'PWD':
-                self.printWorkingDir(self.Message)
+                temp = self.printWorkingDir(self.Message)
                 continue
             
             if self.Message == 'QUIT':
@@ -187,14 +187,17 @@ class Connect(object):
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         
         print('Control connection: \n' + str(Reply))
+        CC1 = str(Reply)
         
         Reply = FileTransferSocket.recv(4096).decode('UTF-8')
         print('Data port reply:\n ' + str(Reply))
+        DP = str(Reply)
         
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         print('Control connection:\n ' + str(Reply))
+        CC2 = str(Reply)
 
-        return
+        return CC1, DP, CC2
 
     def NoOperation(self, Message):
         #This function implements the NOOP command
@@ -211,7 +214,7 @@ class Connect(object):
             
             print(Reply)
         
-        return
+        return Reply
 
     def passiveMode(self):
         #This function implements the PASV command
@@ -316,7 +319,7 @@ class Connect(object):
                 
                 self.TypeList[2] = True
 
-        return
+        return str(Reply)
 
     def Retrieve(self,Message,TypeList,FileTransferSocket,MarkerPosition=0):
         #This function implements the RETR command for the client
@@ -370,7 +373,7 @@ class Connect(object):
         print('Control connection reply: \n' + str(Reply))
         
         
-        return
+        return str(Reply), str(len(IncomingData)/1000), str(ElapsedTime)
 
     def Store(self,Message,TypeList,FileTransferSocket,MarkerPosition=0):
         #This function implements the STOR command for the client
@@ -423,7 +426,7 @@ class Connect(object):
             Reply = self.ControlSocket.recv(4096).decode('UTF-8')
             print('Control connection reply: \n' + str(Reply))
         
-        return
+        return str(Reply), str(os.path.getsize(ParameterOne)/1000), str(ElapsedTime)
 
     def changeMode(self,Message,ModeList):
         #This function is responsible for changing the MODES of sending
@@ -462,7 +465,7 @@ class Connect(object):
                 
                 self.ModeList[2] = True
     
-        return
+        return str(Reply)
 
     def makeDirectory(self,Message):
         #This function implements the MKD command by the Client
@@ -473,7 +476,7 @@ class Connect(object):
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         print('Control connection reply: \n' + str(Reply))
         
-        return
+        return str(Reply)
 
     def removeDirectory(self,Message):
         #This function implements the RMD command by the Client
@@ -484,7 +487,7 @@ class Connect(object):
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         print('Control connection reply: \n' + str(Reply))
         
-        return
+        return str(Reply)
 
     def changeToParentDirectory(self,Message):
         #This function implements the CDUP command by the Client
@@ -495,7 +498,7 @@ class Connect(object):
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         print('Control connection reply: \n' + str(Reply))
         
-        return
+        return str(Reply)
 
     def deleteFileInDirectory(self,Message):
         #This function implements the DELE command by the Client
@@ -506,7 +509,7 @@ class Connect(object):
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         print('Control connection reply: \n' + str(Reply))
         
-        return
+        return str(Reply)
 
     def changeWorkingDirectory(self,Message):
         #This function implements the CWD command by the Client    
@@ -517,7 +520,7 @@ class Connect(object):
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         print('Control connection reply: \n' + str(Reply))
         
-        return
+        return str(Reply)
 
     def sendCompressionMode(self,File,FileTransferSocket):
         #This function implements the sending of data in compression mode
@@ -971,7 +974,7 @@ class Connect(object):
         Reply = self.ControlSocket.recv(4096).decode('UTF-8')
         print('Control connection reply: \n' + str(Reply))
         
-        return
+        return str(Reply)
 
     def makeDataConnection(self,Message):
         #This function physically creates the data connection to the server
