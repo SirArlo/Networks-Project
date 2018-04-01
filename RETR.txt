@@ -1,0 +1,9 @@
+Performing this operation allows for the client
+to download a file from the server which will be 
+stored in the directory of the client script.
+
+RETR can be used in conjunction with the 
+supported TYPES and MODES outlined in their
+respective help files.
+
+Command Sequence = RETR<space>FileName<CRLF>
