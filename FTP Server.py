@@ -3,7 +3,7 @@
 """
 Created on Sun Mar 04 15:06:43 2018
 
-@author: Arlo
+@author: Arlo Eardley 1108472 and Carel Ross 1106684
 """
 
 import socket
@@ -23,6 +23,7 @@ ModeList = [True, False, False]
 PortList = [True,False]
 
 def Login(port,Host, Command):
+    #written by Arlo Eardley 1108472
     #The login function processes the user and password commands, there is no anynonymous login
     #Users have to have username and password to use the server
     
@@ -34,7 +35,7 @@ def Login(port,Host, Command):
         UserAuthenticate = FolderChecker(ServerFileDirectory,ReceivedUserName)
         
         if UserAuthenticate == 0: #if user folder does not exist
-            connection.send('404 user-name incorrect!\r\n')
+            connection.send('530 user-name incorrect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
             
@@ -54,7 +55,7 @@ def Login(port,Host, Command):
     
         else:
             #otherwise the details are incorrect
-            connection.send('404 user-name incorrect!\r\n')
+            connection.send('530 user-name incorrect!\r\n')
             ReceivedUserName = connection.recv(4096).decode("UTF-8")
             ReceivedUserName = formatCommands(ReceivedUserName)
 
@@ -71,7 +72,7 @@ def Login(port,Host, Command):
     
         else:
             #if not request the password again
-            connection.send('404 Password incorrect\r\n')
+            connection.send('530 Password incorrect\r\n')
             ReceivedPassword = connection.recv(4096).decode("UTF-8")
             ReceivedPassword = formatCommands(ReceivedPassword)
             
@@ -130,6 +131,7 @@ def readFile(filename):
     return UserName, Password
 
 def quitService():
+    #written by Arlo Eardley 1108472
     #This function quits the server after sending the godbye message
     ReplyCode = '221 Thank you come again!\r\n'
     connection.send(ReplyCode.encode("UTF-8"))
@@ -138,6 +140,8 @@ def quitService():
     return
 
 def SOS(Command):
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #this function is the HELP command that finds textfiles in the servers file directory
     #reads the contents and sends them to the client over the control connection
     #The parameter can either be HELP or the command specified in the HELP operation
@@ -161,6 +165,7 @@ def SOS(Command):
     return
    
 def makeDirectory(Command):
+    #written by Carel Ross 1106684
     # this function makes a directory for the client
     #and creates the directory from the current working directory
     
@@ -192,6 +197,7 @@ def makeDirectory(Command):
     return 
     
 def changeWorkingDir(Command):
+    #written by Carel Ross 1106684
     #This function changes the current worki9ng directory
     
     Path = formatCommands(Command)
@@ -230,6 +236,7 @@ def changeWorkingDir(Command):
     return 
 
 def removeDirectory(Command):
+    #written by Arlo Eardley 1108472
     #this function removes a directory by appending the selected path to the
     #users current working directory
     
@@ -250,6 +257,7 @@ def removeDirectory(Command):
     return
    
 def changeToParentDir():
+    #written by Carel Ross 1106684
     #this function changes to the root/parent directory for the client
     #the users directory is a constant variable that never changes 
     
@@ -261,6 +269,7 @@ def changeToParentDir():
     return 
     
 def deleteFile(Command):
+    #written by Arlo Eardley 1108472
     #this function allows the client to delete a file in their directory
     #Filename is extracted from the command sent to the server
     
@@ -283,6 +292,8 @@ def deleteFile(Command):
     return
 
 def changeType(Command,TypeList):
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function changes the TYPE to ASCII EDCBIS or IMAGE and remains changed
     #for the duration fo the session although ASCII is the default TYPE
     
@@ -330,7 +341,8 @@ def changeType(Command,TypeList):
     return
 
 def changeMode(Command,ModeList):
-    
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function is responsible for changing the MODES of sending
     #supported modes are STREAM, BLOCK and COMPRESSION
     
@@ -377,6 +389,7 @@ def changeMode(Command,ModeList):
     return
     
 def NoOperation(Command):
+    #written by Carel Ross 1106684
     #this function replies to a NOOP command
     
     Response = "200 OK\r\n"
@@ -386,6 +399,7 @@ def NoOperation(Command):
     return
 
 def getDirectoryList(Command,UsersDir,DataConnection):
+    #written by Arlo Eardley 1108472
     #This function performs the LIST command and sends the directory list 
     #over a previously established data connection using PASV
 
@@ -432,6 +446,7 @@ def getDirectoryList(Command,UsersDir,DataConnection):
     return
 
 def passiveMode(Host):
+    #written by Arlo Eardley 1108472
     #This function implements the PASV mode for data transfer
     #By setting up the datasocket and returning it to other functions to use
 
@@ -460,7 +475,8 @@ def passiveMode(Host):
     return DataConnection, DataAddress
 
 def Store(Command,DataConnection,MarkerPosition=0):
-    
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the RETR command from the client (server storing data on client side)
     FileName = formatCommands(Command)    
     StartTimer = time.time()
@@ -510,6 +526,8 @@ def Store(Command,DataConnection,MarkerPosition=0):
     return
 
 def retrieve(Command,DataConnection):
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This implements the STOR command from the user (Server retrieving data from client)
     
     FileName = formatCommands(Command)
@@ -522,7 +540,7 @@ def retrieve(Command,DataConnection):
         if ModeList[0] == True:
             print(str(FileName) + ' has been opened...')
             
-            IncommingData = recv_timeout(DataConnection)
+            IncommingData = CatchAllData(DataConnection)
             
             if TypeList[0] == True:
                 IncommingData.decode('UTF-8') #This is ASCII
@@ -537,12 +555,12 @@ def retrieve(Command,DataConnection):
                 
         if ModeList[1]== True:
             
-            IncommingData = recv_timeout(DataConnection)
+            IncommingData = CatchAllData(DataConnection)
             receiveCompressionMode(IncommingData,File) #receive in compression mode
         
         if ModeList[2] == True:
             
-            IncommingData = recv_timeout(DataConnection)
+            IncommingData = CatchAllData(DataConnection)
             receiveBlockMode(File,IncommingData,0) #receive in block mode
            
         
@@ -576,6 +594,7 @@ def Number2bits(Number, NoBits):
     return str(Number).zfill(NoBits)
 
 def printWorkingDir():
+    #written by Carel Ross 1106684
     #This function implements the PWD command
     
     #perform directory manipulation for user
@@ -594,6 +613,8 @@ def printWorkingDir():
     return
 
 def receiveCompressionMode(IncommingData,File):
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function allows the receiving of data in compression mode
     
     #Initalise some variables
@@ -662,6 +683,8 @@ def receiveCompressionMode(IncommingData,File):
     return
 
 def sendCompressionMode(DataConnection,File):
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the sending of data in compression mode
     
     File = File.read()  #Read all contents of file
@@ -819,44 +842,39 @@ def sendCompressionMode(DataConnection,File):
             
     return
 
-def recv_timeout(the_socket,timeout=2):
-    #This fucntion allows for the socket to receive all incomming data with no data loss
-    
+def CatchAllData(socket,timeout=2):
     #make socket non blocking
-    the_socket.setblocking(0)
-     
-    #total data partwise in an array
-    total_data=[];
-    data='';
-     
-    #beginning time
+    socket.setblocking(0)
+    TotalData=[];
+    Data='';
     begin=time.time()
+    
     while 1:
         #if you got some data, then break after timeout
-        if total_data and time.time()-begin > timeout:
+        if TotalData and time.time()-begin > timeout:
             break
          
         #if you got no data at all, wait a little longer, twice the timeout
         elif time.time()-begin > timeout*2:
             break
-         
         #recv something
         try:
-            data = the_socket.recv(8192)
-            if data:
-                total_data.append(data)
+            Data = socket.recv(8192)
+            if Data:
+                TotalData.append(Data)
                 #change the beginning time for measurement
                 begin=time.time()
             else:
-                #sleep for sometime to indicate a gap
+                #sleep
                 time.sleep(0.1)
         except:
             pass
      
     #join all parts to make final string
-    return ''.join(total_data)
+    return ''.join(TotalData)
 
 def ChangePort(Command):
+    #written by Carel Ross 1106684
     #This function performs the PORT command when the user
     #specifies a host and port to use for data transfer
 
@@ -887,13 +905,9 @@ def ChangePort(Command):
 
     return FileTransferSocket
 
-def RestartFileTransfer(MarkerPosition):
-    
-    receiveBlockMode(MarkerPosition)
-
-    return
-
 def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the sending of information in block mode
     #The following headers have been used in this implementation
     #64(01000000) is EOF ----------> done
@@ -960,6 +974,8 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
     return 
 
 def receiveBlockMode(File,IncommingData,MarkerPosition=0):
+    #written by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the receiving of information in block mode
     #The following headers have been used in this implementation
     #64(01000000) is EOF ----------> done
@@ -1097,12 +1113,6 @@ while 1:
         NoOperation(Command)
         continue
     
-    if Command[0:4] == 'REST':
-        
-        MarkerPosition = 0 #defualt value
-        RestartFileTransfer(MarkerPosition) 
-        continue
-
     if Command[0:4] == 'HELP':
        
        SOS(Command)

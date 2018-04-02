@@ -2,7 +2,7 @@
 """
 Created on Tue Mar 20 13:31:42 2018
 
-@author: Arlo Eardley
+@author: Arlo Eardley 1108472 and Carel Ross 1106684
 """
 import socket
 import os
@@ -83,13 +83,7 @@ class FTPserverThread(threading.Thread):
             
                 self.NoOperation()
                 continue
-            
-            if Command[0:4] == 'REST':
-                
-                MarkerPosition = 0 #defualt value
-                self.RestartFileTransfer(MarkerPosition) 
-                continue
-        
+                    
             if Command[0:4] == 'HELP':
                
                self.SOS(Command)
@@ -141,6 +135,7 @@ class FTPserverThread(threading.Thread):
         self.connection.close()
             
     def Login(self,port,Host,Command):
+         #Wrttien by Arlo Eardley 1108472
          #The login function processes the user and password commands, there is no anynonymous login
          #Users have to have username and password to use the server
            
@@ -152,7 +147,7 @@ class FTPserverThread(threading.Thread):
             self.UserAuthenticate = self.FolderChecker(FileDirectory) #Find the directory of the servers python file
             
             if self.UserAuthenticate == 0: #if user folder does not exist
-                self.connection.send('404 user-name incorrect!\r\n')
+                self.connection.send('530 user-name incorrect!\r\n')
                 self.ReceivedUserName = self.connection.recv(4096).decode("UTF-8")
                 self.ReceivedUserName = self.formatCommands(self.ReceivedUserName)
                 
@@ -172,7 +167,7 @@ class FTPserverThread(threading.Thread):
         
             else:
                 #otherwise the details are incorrect
-                self.connection.send('404 user-name incorrect!\r\n')
+                self.connection.send('530 user-name incorrect!\r\n')
                 self.ReceivedUserName = self.connection.recv(4096).decode("UTF-8")
                 self.ReceivedUserName = self.formatCommands(self.ReceivedUserName)
     
@@ -189,7 +184,7 @@ class FTPserverThread(threading.Thread):
         
             else:
                 #if not request the password again
-                self.connection.send('404 Password inccorect\r\n')
+                self.connection.send('530 Password inccorect\r\n')
                 self.ReceivedPassword = self.connection.recv(4096).decode("UTF-8")
                 self.ReceivedPassword = self.formatCommands(self.ReceivedPassword)
 
@@ -246,6 +241,7 @@ class FTPserverThread(threading.Thread):
         return self.UserName, self.Password
 
     def quitService(self,address):
+        #Wrttien by Arlo Eardley 1108472
         #This function quits the server after sending the godbye message
         ReplyCode = '221 Thank you come again!\r\n'
         self.connection.send(ReplyCode.encode("UTF-8"))
@@ -254,6 +250,8 @@ class FTPserverThread(threading.Thread):
         return
 
     def SOS(self,Command):
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #this function is the HELP command that finds textfiles in the servers file directory
         #reads the contents and sends them to the client over the control connection
         #The parameter can either be HELP or the command specified in the HELP operation 
@@ -279,6 +277,7 @@ class FTPserverThread(threading.Thread):
     
         
     def makeDirectory(self,Command,CurrentWorkDir):
+        #written by Carel Ross 1106684
         # this function makes a directory for the client
         #and creates the directory from the current working directory   
 
@@ -300,6 +299,7 @@ class FTPserverThread(threading.Thread):
         return 
            
     def changeWorkingDir(self,Command,CurrentWorkDir):
+        #written by Carel Ross 1106684
         #This function changes the current worki9ng directory
 
         Path = self.formatCommands(Command)
@@ -339,6 +339,7 @@ class FTPserverThread(threading.Thread):
         return 
       
     def removeDirectory(self,Command,CurrentWorkDir):
+        #Wrttien by Arlo Eardley 1108472
         #this function removes a directory by appending the selected path to the
         #users current working directory
 
@@ -359,6 +360,7 @@ class FTPserverThread(threading.Thread):
         return
          
     def changeToParentDir(self,CurrentWorkDir):
+        #written by Carel Ross 1106684
         #this function changes to the root/parent directory for the client
         #the users directory is a constant variable that never changes 
 
@@ -369,6 +371,7 @@ class FTPserverThread(threading.Thread):
         return 
         
     def deleteFile(self,Command,CurrentWorkDir):
+        #Wrttien by Arlo Eardley 1108472
         # this function allows the client to delete a file in their directory
         #Filename is extracted from the command sent to the server
 
@@ -391,6 +394,8 @@ class FTPserverThread(threading.Thread):
         return
     
     def changeType(self,Command,TypeList):
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #This function changes the TYPE to ASCII EDCBIS or IMAGE and remains changed
         #for the duration fo the session although ASCII is the default TYPE
 
@@ -438,6 +443,8 @@ class FTPserverThread(threading.Thread):
         return
 
     def changeMode(self,Command,ModeList):
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #This function is responsible for changing the MODES of sending
         #supported modes are STREAM, BLOCK and COMPRESSION  
 
@@ -484,6 +491,7 @@ class FTPserverThread(threading.Thread):
         return
         
     def NoOperation(self):
+        #written by Carel Ross 1106684
         #this function replies to a NOOP command
 
         Response = "200 OK\r\n"
@@ -493,6 +501,7 @@ class FTPserverThread(threading.Thread):
         return
     
     def getDirectoryList(self,Command,UsersDir,DataConnection):
+        #Wrttien by Arlo Eardley 1108472
         #This function performs the LIST command and sends the directory list 
         #over a previously established data connection using PASV
 
@@ -541,6 +550,7 @@ class FTPserverThread(threading.Thread):
         return
     
     def passiveMode(self,Host):
+        #Wrttien by Arlo Eardley 1108472
         #This function implements the PASV mode for data transfer
         #By setting up the datasocket and returning it to other functions to use
           
@@ -569,6 +579,8 @@ class FTPserverThread(threading.Thread):
         return self.DataConnection, self.DataAddress
     
     def Store(self,Command,DataConnection,UsersDir,MarkerPosition=0):
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #This function implements the RETR command from the client (server storing data on client side)
            
         Document = self.formatCommands(Command) 
@@ -617,7 +629,9 @@ class FTPserverThread(threading.Thread):
         return
     
     def retrieve(self,Command,DataConnection,UsersDir):
-         #This implements the STOR command from the user (Server retrieving data from client)   
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
+        #This implements the STOR command from the user (Server retrieving data from client)   
 
         Document = self.formatCommands(Command)
         FileName = self.CurrentWorkDir + '\\' +str(Document)
@@ -628,7 +642,7 @@ class FTPserverThread(threading.Thread):
             if self.ModeList[0] == True:
                 print(str(FileName) + ' has been opened...')
                 
-                IncommingData = self.recv_timeout(self.DataConnection)
+                IncommingData = self.CatchAllData(self.DataConnection)
 
                 #perform check for modes and types currently being used
                 if self.TypeList[0] == True:
@@ -644,13 +658,13 @@ class FTPserverThread(threading.Thread):
                     
             if self.ModeList[1]== True:
                 
-                IncommingData = self.recv_timeout(self.DataConnection)
+                IncommingData = self.CatchAllData(self.DataConnection)
                 print('Receiving ' + str(FileName) + ' in compression mode.')
                 self.receiveCompressionMode(IncommingData,File)   #receive in compression mode
 
             if self.ModeList[2] == True:
                 
-                IncommingData = self.recv_timeout(self.DataConnection)
+                IncommingData = self.CatchAllData(self.DataConnection)
                 print('Receiving ' + str(FileName) + ' in block mode.')
                 self.receiveBlockMode(File,IncommingData,0)  #receive in block mode
  
@@ -684,6 +698,7 @@ class FTPserverThread(threading.Thread):
         return str(Number).zfill(NoBits)
     
     def printWorkingDir(self,CurrentWorkDir):
+        #written by Carel Ross 1106684
         #This function implements the PWD command
     
         #perform directory manipulation for user
@@ -702,6 +717,8 @@ class FTPserverThread(threading.Thread):
         return
     
     def receiveCompressionMode(self,IncommingData,File):
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #This function allows the receiving of data in compression mode
     
         #Initalise some variables
@@ -771,6 +788,8 @@ class FTPserverThread(threading.Thread):
         return
     
     def sendCompressionMode(self,DataConnection,File):
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #This function implements the sending of data in compression mode  
          
         File = File.read() #Read all contents of file
@@ -928,18 +947,18 @@ class FTPserverThread(threading.Thread):
         return
     
     
-    def recv_timeout(self,DataConnection,timeout=2):
+    def CatchAllData(self,DataConnection,timeout=2):
         #This fucntion allows for the socket to receive all incomming data with no data loss
         
         #make socket non blocking
         self.DataConnection.setblocking(0)
-        total_data=[];
-        data='';
+        TotalData=[];
+        Data='';
         begin = time.time()
         
         while 1:
             #if you got some data, then break after timeout
-            if total_data and time.time()-begin > timeout:
+            if TotalData and time.time()-begin > timeout:
                 break
              
             #if you got no data at all, wait a little longer, twice the timeout
@@ -948,9 +967,9 @@ class FTPserverThread(threading.Thread):
              
             #recv something
             try:
-                data = self.DataConnection.recv(8192)
-                if data:
-                    total_data.append(data)
+                Data = self.DataConnection.recv(8192)
+                if Data:
+                    TotalData.append(Data)
                     #change the beginning time for measurement
                     begin=time.time()
                 else:
@@ -960,9 +979,10 @@ class FTPserverThread(threading.Thread):
                 pass
          
         #join all parts to make final string
-        return ''.join(total_data)
+        return ''.join(TotalData)
     
     def ChangePort(self,Command):
+        #written by Carel Ross 1106684
         #This function performs the PORT command when the user
         #specifies a host and port to use for data transfer
 
@@ -996,13 +1016,9 @@ class FTPserverThread(threading.Thread):
         return self.FileTransferSocket
     
     
-    def RestartFileTransfer(self,MarkerPosition):
-        
-        self.receiveBlockMode(MarkerPosition)
-    
-        return
-
     def sendBlockMode(self,File,FileTransferSocket,MarkerPosition=0): 
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #This function implements the sending of information in block mode
         #The following headers have been used in this implementation
         #64(01000000) is EOF ----------> done
@@ -1068,6 +1084,8 @@ class FTPserverThread(threading.Thread):
         return 
     
     def receiveBlockMode(self,File,IncommingData,MarkerPosition=0):
+        #Wrttien by Arlo Eardley 1108472
+        #written by Carel Ross 1106684
         #This function implements the receiving of information in block mode
         #The following headers have been used in this implementation
         #64(01000000) is EOF ----------> done

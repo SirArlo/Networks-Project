@@ -2,13 +2,13 @@
 #!/usr/bin/python 
 """
 Created on Thu Feb 22 17:03:26 2018
-@author: eards
+@author: Arlo Eardley 1108472 and Carel Ross 1106684
 """
 import socket
 import time
 import os
 
-port = 21
+port = 5000
 Host = 'localhost'
 
 #Type List In order ASCII, EDCBIC, IMAGE
@@ -26,6 +26,7 @@ ControlSocket = socket.socket()
 ControlSocket.connect((Host,port))
 
 def Login(port,Host): 
+    #Wrttien by Arlo Eardley 1108472
     #this function allows for the user to input their login details
     #it is called first and thus does not allows the user to acess a
     #server without login info
@@ -67,6 +68,7 @@ def Login(port,Host):
     return
 
 def getList(Message,FileTransferSocket):
+    #Wrttien by Arlo Eardley 1108472
     #this function implemets the LIST commandand 
     #receives the directory list from server
     #NB it must be preceeded by a PORT or PASV command
@@ -87,6 +89,7 @@ def getList(Message,FileTransferSocket):
     return
 
 def NoOperation(Message):
+    #written by Carel Ross 1106684
     #This function implements the NOOP command
     
     Message = Message +'\r\n'
@@ -104,6 +107,7 @@ def NoOperation(Message):
     return
 
 def passiveMode():
+    #Wrttien by Arlo Eardley 1108472
     #This function implements the PASV command
     #the return is used in the makeDataConnection() function
     #to use the port and host to create the connection
@@ -143,6 +147,7 @@ def Number2bits(Number, NoBits):
     return str(Number).zfill(NoBits)
    
 def quitService(Message):
+    #Wrttien by Arlo Eardley 1108472
     #This function handles the QUIT command
     #After response is received the main while loop down below is exited
     #and the control connection is terminated
@@ -156,6 +161,8 @@ def quitService(Message):
     return
 
 def getHelp(Message):
+    #written by Carel Ross 1106684
+    #Wrttien by Arlo Eardley 1108472
     #This function implements the HELP command
     
     Message,_ = formatCommands(Message)
@@ -171,6 +178,8 @@ def getHelp(Message):
     return
 
 def changeType(Message,TypeList):
+    #Wrttien by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function changes the TYPE to ASCII EDCBIS or IMAGE and remains changed
     #for the duration fo the session although ASCII is the default TYPE
     
@@ -209,6 +218,8 @@ def changeType(Message,TypeList):
     return
 
 def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
+    #Wrttien by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the RETR command for the client
     
     Message,Filename = formatCommands(Message)
@@ -225,7 +236,7 @@ def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
         if ModeList[0] == True:
             print(str(Filename) + ' has been opened...')
             
-            IncommingData = recv_timeout(FileTransferSocket)
+            IncommingData = CatchAllData(FileTransferSocket)
             
             #Perform the checks for the TYPES being used
             if TypeList[0] == True:
@@ -241,12 +252,12 @@ def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
                 
         if ModeList[1]== True:
             
-           IncommingData = recv_timeout(FileTransferSocket)
+           IncommingData = CatchAllData(FileTransferSocket)
            receiveCompressionMode(FileTransferSocket,IncommingData,File) #Receive in compression mode
         
         if ModeList[2] == True:
             
-            IncommingData = recv_timeout(FileTransferSocket)
+            IncommingData = CatchAllData(FileTransferSocket)
             receiveBlockMode(File,FileTransferSocket,IncommingData,0) #Receive in block mode
            
         StopTimer = time.time()
@@ -263,6 +274,8 @@ def Retrieve(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     return
 
 def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
+    #written by Carel Ross 1106684
+    #Wrttien by Arlo Eardley 1108472
      #This function implements the STOR command for the client
      
     Message,ParameterOne = formatCommands(Message)
@@ -316,6 +329,8 @@ def Store(Message,TypeList,FileTransferSocket,MarkerPosition=0):
     return
 
 def changeMode(Message,ModeList):
+    #Wrttien by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function is responsible for changing the MODES of sending
     #supported modes are STREAM, BLOCK and COMPRESSION
     
@@ -355,6 +370,7 @@ def changeMode(Message,ModeList):
     return
 
 def makeDirectory(Message):
+    #written by Carel Ross 1106684
     #This function implements the MKD command by the Client
     
     Message,Pathname = formatCommands(Message)
@@ -366,7 +382,8 @@ def makeDirectory(Message):
     return
 
 def removeDirectory(Message):
-     #This function implements the RMD command by the Client
+    #Wrttien by Arlo Eardley 1108472
+    #This function implements the RMD command by the Client
      
     Message,Pathname = formatCommands(Message)
     
@@ -377,6 +394,7 @@ def removeDirectory(Message):
     return
 
 def changeToParentDirectory(Message):
+    #written by Carel Ross 1106684
     #This function implements the CDUP command by the Client
     
     Message,Pathname = formatCommands(Message)
@@ -388,6 +406,7 @@ def changeToParentDirectory(Message):
     return
 
 def deleteFileInDirectory(Message):
+    #Wrttien by Arlo Eardley 1108472
     #This function implements the DELE command by the Client
          
     Message,Pathname = formatCommands(Message)
@@ -399,6 +418,7 @@ def deleteFileInDirectory(Message):
     return
 
 def changeWorkingDirectory(Message):
+    #written by Carel Ross 1106684
     #This function implements the CWD command by the Client    
     
     Message,Pathname = formatCommands(Message)
@@ -410,6 +430,8 @@ def changeWorkingDirectory(Message):
     return
 
 def sendCompressionMode(File,FileTransferSocket):
+    #Wrttien by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the sending of data in compression mode
            
     File = File.read() #read all contents of file
@@ -569,6 +591,8 @@ def sendCompressionMode(File,FileTransferSocket):
     return
 
 def receiveCompressionMode(FileTransferSocket,IncommingData,File):
+    #Wrttien by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function allows the receiving of data in compression mode
     
     #Initalise some variables      
@@ -635,43 +659,40 @@ def receiveCompressionMode(FileTransferSocket,IncommingData,File):
             
     return
 
-def recv_timeout(the_socket,timeout=2):
+def CatchAllData(socket,timeout=2):
     #make socket non blocking
-    the_socket.setblocking(0)
-     
-    #total data partwise in an array
-    total_data=[];
-    data='';
-     
-    #beginning time
+    socket.setblocking(0)
+    TotalData=[];
+    Data='';
     begin=time.time()
+    
     while 1:
         #if you got some data, then break after timeout
-        if total_data and time.time()-begin > timeout:
+        if TotalData and time.time()-begin > timeout:
             break
          
         #if you got no data at all, wait a little longer, twice the timeout
         elif time.time()-begin > timeout*2:
             break
-         
         #recv something
         try:
-            data = the_socket.recv(8192)
-            if data:
-                total_data.append(data)
+            Data = socket.recv(8192)
+            if Data:
+                TotalData.append(Data)
                 #change the beginning time for measurement
                 begin=time.time()
             else:
-                #sleep for sometime to indicate a gap
+                #sleep
                 time.sleep(0.1)
         except:
             pass
      
     #join all parts to make final string
-    return ''.join(total_data)
+    return ''.join(TotalData)
 
 
 def ChangePort(Message): 
+    #written by Carel Ross 1106684
     #This function implements the PORT command for the client
     #the host and port are returned fo that the makeDataConnection()
     #function can actually create the connection
@@ -692,7 +713,9 @@ def ChangePort(Message):
 
     return DataHost,DataPort
    
-def sendBlockMode(File,FileTransferSocket,MarkerPosition=0): 
+def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):     
+    #Wrttien by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the sending of information in block mode
     #The following headers have been used in this implementation
     #64(01000000) is EOF ----------> done
@@ -758,12 +781,9 @@ def sendBlockMode(File,FileTransferSocket,MarkerPosition=0):
                     
     return 
     
-def restartBlockMode(MarkerPosition,Message):
-    
-    #No idea how to do this 
-    return
-
 def receiveBlockMode(File,FileTransferSocket,IncommingData,MarkerPosition=0):
+    #Wrttien by Arlo Eardley 1108472
+    #written by Carel Ross 1106684
     #This function implements the receiving of information in block mode
     #The following headers have been used in this implementation
     #64(01000000) is EOF ----------> done
@@ -832,7 +852,7 @@ def formatCommands(Message):
     CommandsOneParam = ['USER','PASS','RETR','STOR','MKD','RMD','HELP','LIST','TYPE','MODE','DELE','CWD']
     ParameterOne = ''
 
-#format teh message with the terminating charcaters\r\n to send to the server
+#format the message with the terminating charcaters\r\n to send to the server
     if Message[0:4] in CoammndsNoParam:
         Message = Message +'\r\n'
         
@@ -858,6 +878,7 @@ def formatCommands(Message):
 
 
 def printWorkingDir(Message):
+    #written by Carel Ross 1106684
     #This function implements the PWD command to send to server
     
     Message,_ = formatCommands(Message)
@@ -925,12 +946,7 @@ while 1:
 
         NoOperation(Message)
         continue
-    
-#    if Message[0:4] == 'REST':
-#        MarkerPosition =0 # default this to 0
-#        Restart(MarkerPosition) 
-#        continue
-    
+  
     if Message[0:4] == 'PASV':
         
         PortList[0] = True
