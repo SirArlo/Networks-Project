@@ -1001,7 +1001,7 @@ while 1:
     
     if Message[0:4] == 'DELE':
         
-        changeToParentDirectory(Message)
+        deleteFileInDirectory(Message)
         continue
     
     if Message[0:3] == 'CWD':
